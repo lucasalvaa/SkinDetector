@@ -1,0 +1,42 @@
+line-length = 88
+target-version = "py311"
+fix = true
+
+[lint]
+select = [
+    "E",    # pycodestyle errors (Stile PEP8)
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes (Errori logici, import inutilizzati)
+    "I",    # isort (Ordinamento import - simile a AvoidStarImport/UnusedImports)
+    "C90",  # mccabe (Complessità ciclotomatica)
+    "N",    # pep8-naming (Nomi coerenti: classi, funzioni, variabili)
+    "B",    # flake8-bugbear (Errori comuni/insidiosi)
+    "ANN",  # flake8-annotations (Type hints - fondamentale per leggibilità)
+    "D",    # pydocstyle (Documentazione/Docstrings)
+    "PL",   # Pylint (Regole avanzate di refactoring e complessità)
+    "RUF",  # Regole specifiche di Ruff
+]
+
+ignore = [
+    "D100", # Spesso i docstring nei file __init__.py sono ridondanti
+    "ANN101", # Non serve annotare 'self'
+    "ANN102", # Non serve annotare 'cls'
+]
+
+[lint.mccabe]
+max-complexity = 10 # Complessità ciclomatica
+
+[lint.pylint]
+max-args = 5
+max-branches = 12
+max-statements = 50
+
+[lint.isort]
+combine-as-imports = true
+force-single-line = false
+
+[format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "lf"
