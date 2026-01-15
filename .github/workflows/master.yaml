@@ -32,12 +32,12 @@ jobs:
           
       - name: Run Ruff Check (Linting)
         run: |
-          ruff check . --format=github
+          ruff check . --output-format=github
 
       - name: Export Ruff Report
         if: always()
         run: |
-          ruff check . --format=json > ruff-report.json
+          ruff check . --output-format=json > ruff-report.json
 
       - name: Upload Report Artifact
         if: always()
