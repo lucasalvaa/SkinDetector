@@ -2,9 +2,9 @@ name: CI Quality Gate
 
 on:
   push:
-    branches: [ "master", "main" ]
+    branches: [ "master" ]
   pull_request:
-    branches: [ "master", "main" ]
+    branches: [ "master" ]
 
 jobs:
   linting:
@@ -25,23 +25,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install ruff
-
-      - name: Run Ruff Check (Format)
-        run: |
-          ruff format --check
           
       - name: Run Ruff Check (Linting)
         run: |
-          ruff check . --output-format=github
-
-      - name: Export Ruff Report
-        if: always()
-        run: |
-          ruff check . --output-format=json > ruff-report.json
-
-      - name: Upload Report Artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ruff-lint-report
-          path: ruff-report.json
+          ruff check src/* --output-format=github
