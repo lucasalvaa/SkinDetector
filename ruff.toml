@@ -13,7 +13,6 @@ select = [
     "B",    # flake8-bugbear (Errori comuni/insidiosi)
     "ANN",  # flake8-annotations (Type hints - fondamentale per leggibilità)
     "D",    # pydocstyle (Documentazione/Docstrings)
-    "PL",   # Pylint (Regole avanzate di refactoring e complessità)
     "RUF",  # Regole specifiche di Ruff
 ]
 
