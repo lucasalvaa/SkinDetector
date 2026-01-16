@@ -1,1 +1,5 @@
-
+[core]
+    remote = origin
+    autostage = true
+['remote "origin"']
+    url = https://dagshub.com/lucasalvaa/SkinDetector.dvc
