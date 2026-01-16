@@ -1,3 +1,13 @@
 dvc[s3]==3.66.0
 dagshub==0.6.4
 ruff==0.14.11
+
+scikit-learn
+matplotlib
+pandas
+seaborn
+PIL
+tqdm
+
+torch
+torchvision
