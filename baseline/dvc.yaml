@@ -1,0 +1,73 @@
+stages:
+  train:
+    foreach: [ effnet_s, effnet_m, convnext ]
+    do:
+      cmd: PYTHONPATH=.. python -m src.train --model ${item} --config params.yaml
+      deps:
+        - ../data/split/train
+        - ../data/split/val
+        - ../src/train.py
+        - ../src/common.py
+      params:
+        - base
+        - data
+        - train
+      outs:
+        - ${item}/model.pth
+        - ${item}/loss.json
+
+  evaluate:
+    foreach: [ effnet_s, effnet_m, convnext ]
+    do:
+      cmd: PYTHONPATH=.. python -m src.evaluate --model ${item} --config params.yaml
+      deps:
+        - ../data/split/test
+        - ../src/evaluate.py
+        - ../src/common.py
+        - ${item}/model.pth
+      params:
+        - base
+        - data
+        - evaluate
+      metrics:
+        - ${item}/metrics.json:
+            cache: false
+      plots:
+        - ${item}/cm_data.json:
+            template: confusion
+            x: actual
+            y: predicted
+            title: "Confusion Matrix - ${item}"
+            cache: false
+
+plots:
+  - Training_Loss_Comparison:
+      template: linear
+      x: epoch
+      y:
+        # Qui confrontiamo le performance di addestramento tra i modelli
+        effnet_s/loss.json: train_loss
+        effnet_m/loss.json: train_loss
+        convnext/loss.json: train_loss
+      title: "Comparison: Training Loss per Model"
+
+  - effnet_s_curves:
+      template: linear
+      x: epoch
+      y:
+        effnet_s/loss.json: [train_loss, val_loss]
+      title: "EfficientNet S: Train vs Val"
+
+  - effnet_m_curves:
+      template: linear
+      x: epoch
+      y:
+        effnet_m/loss.json: [train_loss, val_loss]
+      title: "EfficientNet M: Train vs Val"
+
+  - convnext_curves:
+      template: linear
+      x: epoch
+      y:
+        convnext/loss.json: [train_loss, val_loss]
+      title: "ConvNeXt: Train vs Val"

@@ -1,0 +1,233 @@
+schema: '2.0'
+stages:
+  train@effnet_s:
+    cmd: PYTHONPATH=.. python -m src.train --model effnet_s --config params.yaml
+    deps:
+    - path: ../data/split/train
+      hash: md5
+      md5: e47f4ce8e557b91734b948be2b5782c9.dir
+      size: 161152912
+      nfiles: 3047
+    - path: ../data/split/val
+      hash: md5
+      md5: e8a6457daa0bf342d834495dbd173346.dir
+      size: 35080719
+      nfiles: 654
+    - path: ../src/common.py
+      hash: md5
+      md5: 96a2bc22f7a5e9d9a0c886f80d01b455
+      size: 2830
+    - path: ../src/train.py
+      hash: md5
+      md5: 613d0f12e2e1f3a8cb02cfb8f3f91efd
+      size: 3527
+    params:
+      params.yaml:
+        data:
+          trainset_path: ../data/split/train
+          valset_path: ../data/split/val
+          testset_path: ../data/split/test
+        train:
+          epochs: 4
+          batch_size: 16
+    outs:
+    - path: effnet_s/loss.json
+      hash: md5
+      md5: 3f266dfea5631eec75f4e68c2bb39588
+      size: 458
+    - path: effnet_s/model.pth
+      hash: md5
+      md5: cb5280d9da3f0cce24aec4d880a0cc71
+      size: 81596987
+  train@effnet_m:
+    cmd: PYTHONPATH=.. python -m src.train --model effnet_m --config params.yaml
+    deps:
+    - path: ../data/split/train
+      hash: md5
+      md5: e47f4ce8e557b91734b948be2b5782c9.dir
+      size: 161152912
+      nfiles: 3047
+    - path: ../data/split/val
+      hash: md5
+      md5: e8a6457daa0bf342d834495dbd173346.dir
+      size: 35080719
+      nfiles: 654
+    - path: ../src/common.py
+      hash: md5
+      md5: 96a2bc22f7a5e9d9a0c886f80d01b455
+      size: 2830
+    - path: ../src/train.py
+      hash: md5
+      md5: 613d0f12e2e1f3a8cb02cfb8f3f91efd
+      size: 3527
+    params:
+      params.yaml:
+        data:
+          trainset_path: ../data/split/train
+          valset_path: ../data/split/val
+          testset_path: ../data/split/test
+        train:
+          epochs: 4
+          batch_size: 16
+    outs:
+    - path: effnet_m/loss.json
+      hash: md5
+      md5: ea59adce2949004c9ccceb08f1a26a0e
+      size: 456
+    - path: effnet_m/model.pth
+      hash: md5
+      md5: bd9a76eb8b127e215ba517803e3f53bf
+      size: 212984427
+  train@convnext:
+    cmd: PYTHONPATH=.. python -m src.train --model convnext --config params.yaml
+    deps:
+    - path: ../data/split/train
+      hash: md5
+      md5: e47f4ce8e557b91734b948be2b5782c9.dir
+      size: 161152912
+      nfiles: 3047
+    - path: ../data/split/val
+      hash: md5
+      md5: e8a6457daa0bf342d834495dbd173346.dir
+      size: 35080719
+      nfiles: 654
+    - path: ../src/common.py
+      hash: md5
+      md5: 96a2bc22f7a5e9d9a0c886f80d01b455
+      size: 2830
+    - path: ../src/train.py
+      hash: md5
+      md5: 613d0f12e2e1f3a8cb02cfb8f3f91efd
+      size: 3527
+    params:
+      params.yaml:
+        data:
+          trainset_path: ../data/split/train
+          valset_path: ../data/split/val
+          testset_path: ../data/split/test
+        train:
+          epochs: 4
+          batch_size: 16
+    outs:
+    - path: convnext/loss.json
+      hash: md5
+      md5: 8ea26b0f438f488354c6b71f2db95f7e
+      size: 455
+    - path: convnext/model.pth
+      hash: md5
+      md5: 63f8f9725bcfe8499bdfd8c508a90882
+      size: 111353691
+  evaluate@effnet_s:
+    cmd: PYTHONPATH=.. python -m src.evaluate --model effnet_s --config 
+      params.yaml
+    deps:
+    - path: ../data/split/test
+      hash: md5
+      md5: 945a27c58daecb59e6930a493ea6dd92.dir
+      size: 35024696
+      nfiles: 656
+    - path: ../src/common.py
+      hash: md5
+      md5: 96a2bc22f7a5e9d9a0c886f80d01b455
+      size: 2830
+    - path: ../src/evaluate.py
+      hash: md5
+      md5: c9e5a00b0710d17fb15c7f4ac563b4ad
+      size: 2823
+    - path: effnet_s/model.pth
+      hash: md5
+      md5: cb5280d9da3f0cce24aec4d880a0cc71
+      size: 81596987
+    params:
+      params.yaml:
+        data:
+          trainset_path: ../data/split/train
+          valset_path: ../data/split/val
+          testset_path: ../data/split/test
+        evaluate:
+          batch_size: 16
+    outs:
+    - path: effnet_s/cm_data.json
+      hash: md5
+      md5: ee2840eb4ddeae326062791a2ca46345
+      size: 52355
+    - path: effnet_s/metrics.json
+      hash: md5
+      md5: 0712761dd9a73aee3a24bb4359f32fd0
+      size: 64
+  evaluate@effnet_m:
+    cmd: PYTHONPATH=.. python -m src.evaluate --model effnet_m --config 
+      params.yaml
+    deps:
+    - path: ../data/split/test
+      hash: md5
+      md5: 945a27c58daecb59e6930a493ea6dd92.dir
+      size: 35024696
+      nfiles: 656
+    - path: ../src/common.py
+      hash: md5
+      md5: 96a2bc22f7a5e9d9a0c886f80d01b455
+      size: 2830
+    - path: ../src/evaluate.py
+      hash: md5
+      md5: c9e5a00b0710d17fb15c7f4ac563b4ad
+      size: 2823
+    - path: effnet_m/model.pth
+      hash: md5
+      md5: bd9a76eb8b127e215ba517803e3f53bf
+      size: 212984427
+    params:
+      params.yaml:
+        data:
+          trainset_path: ../data/split/train
+          valset_path: ../data/split/val
+          testset_path: ../data/split/test
+        evaluate:
+          batch_size: 16
+    outs:
+    - path: effnet_m/cm_data.json
+      hash: md5
+      md5: 8e5ad57778f42fcbe54b3b1ccbdc0e97
+      size: 52418
+    - path: effnet_m/metrics.json
+      hash: md5
+      md5: 4acfc6c56a88b4819a16bf982a6ede20
+      size: 64
+  evaluate@convnext:
+    cmd: PYTHONPATH=.. python -m src.evaluate --model convnext --config 
+      params.yaml
+    deps:
+    - path: ../data/split/test
+      hash: md5
+      md5: 945a27c58daecb59e6930a493ea6dd92.dir
+      size: 35024696
+      nfiles: 656
+    - path: ../src/common.py
+      hash: md5
+      md5: 96a2bc22f7a5e9d9a0c886f80d01b455
+      size: 2830
+    - path: ../src/evaluate.py
+      hash: md5
+      md5: c9e5a00b0710d17fb15c7f4ac563b4ad
+      size: 2823
+    - path: convnext/model.pth
+      hash: md5
+      md5: 63f8f9725bcfe8499bdfd8c508a90882
+      size: 111353691
+    params:
+      params.yaml:
+        data:
+          trainset_path: ../data/split/train
+          valset_path: ../data/split/val
+          testset_path: ../data/split/test
+        evaluate:
+          batch_size: 16
+    outs:
+    - path: convnext/cm_data.json
+      hash: md5
+      md5: ef3abe13672aac294d649e95adcf1cc2
+      size: 52422
+    - path: convnext/metrics.json
+      hash: md5
+      md5: 1878bdd0986d999239ee0d41146bcd2b
+      size: 64
