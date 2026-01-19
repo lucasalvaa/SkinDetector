@@ -1,7 +1,6 @@
 """Common utilities for the P1 pipeline, including data loading and model setup."""
 
 from pathlib import Path
-from typing import Dict
 
 import torch
 from torch import nn
@@ -41,6 +40,7 @@ def get_dataloaders(data_path: Path, batch_size: int) -> Dict[str, DataLoader]:
     }
 '''
 
+
 def get_dataloader(image_res: int, data_path: Path, batch_size: int) -> DataLoader:
     """Create a single data loader with a configurable batch size.
 
@@ -53,20 +53,23 @@ def get_dataloader(image_res: int, data_path: Path, batch_size: int) -> DataLoad
         DataLoader to the split.
 
     """
-    tfs = transforms.Compose([
-        transforms.Resize((image_res, image_res)),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-    ])
+    tfs = transforms.Compose(
+        [
+            transforms.Resize((image_res, image_res)),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+        ]
+    )
 
     dataset = datasets.ImageFolder(data_path, tfs)
     return DataLoader(
         dataset,
         batch_size=batch_size,
         shuffle=("train" in str(data_path)),
-        num_workers=4,    # Consiglio: accelera il caricamento dati
-        pin_memory=True   # Accelera il trasferimento dati alla GPU
+        num_workers=4,  # Consiglio: accelera il caricamento dati
+        pin_memory=True,  # Accelera il trasferimento dati alla GPU
     )
+
 
 def get_model(model_name: str, num_classes: int) -> nn.Module:
     """Initialize the chosen architecture with pre-trained weights.
