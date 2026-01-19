@@ -2,12 +2,13 @@
 
 import argparse
 import json
+import yaml
 from pathlib import Path
 from typing import Dict, List
 
 import matplotlib.pyplot as plt
 import torch
-from src.common import DEVICE, get_dataloaders, get_model
+from src.common import DEVICE, get_dataloader, get_model
 from torch import amp, nn, optim
 from torch.utils.data import DataLoader
 
@@ -65,53 +66,47 @@ def train_one_epoch(
     return running_loss / len(loader.dataset)
 
 
-def save_loss_plot(
-    train_losses: List[float], val_losses: List[float], out_dir: Path
-) -> None:
-    """Generate and save the training vs validation loss plot."""
-    plt.figure(figsize=(10, 6))
-    plt.plot(train_losses, label="Training Loss")
-    plt.plot(val_losses, label="Validation Loss")
-    plt.xlabel("Epochs")
-    plt.ylabel("Loss")
-    plt.title("Training and Validation Loss Over Epochs")
-    plt.legend()
-    plt.grid(True)
-    plt.savefig(out_dir / "loss_plot.png")
-    plt.close()
-
-
 def main() -> None:
     """Define main training entry point."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str, required=True)
-    parser.add_argument("--data", type=str, required=True)
-    parser.add_argument("--out", type=str, required=True)
-    parser.add_argument("--batch", type=int, default=16)
-    parser.add_argument("--epochs", type=int, default=4)
+    parser.add_argument("--config", type=str, required=True)
     args = parser.parse_args()
 
-    out_dir = Path(args.out)
+    with open(args.config) as conf_file:
+        config = yaml.safe_load(conf_file)
+
+    out_dir = Path(args.model)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    loaders = get_dataloaders(Path(args.data), args.batch)
-    model = get_model(args.model, len(loaders["train"].dataset.classes))
+    train_loader = get_dataloader(image_res=config["base"]["image_res"],
+                                  data_path=Path(config["data"]["trainset_path"]),
+                                  batch_size=config["train"]["batch_size"])
+
+    val_loader = get_dataloader(image_res=config["base"]["image_res"],
+                                data_path=Path(config["data"]["valset_path"]),
+                                batch_size=config["train"]["batch_size"])
+
+    model = get_model(args.model, len(train_loader.dataset.classes))
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
     scaler = amp.GradScaler()
 
-    history: Dict[str, List[float]] = {"train_loss": [], "val_loss": []}
+    history = []
 
-    for epoch in range(args.epochs):
-        t_loss = train_one_epoch(model, loaders["train"], criterion, optimizer, scaler)
-        v_loss = validate(model, loaders["val"], criterion)
+    for epoch in range(config["train"]["epochs"]):
+        t_loss = train_one_epoch(model, train_loader, criterion, optimizer, scaler)
+        v_loss = validate(model, val_loader, criterion)
 
-        history["train_loss"].append(t_loss)
-        history["val_loss"].append(v_loss)
+        history.append({
+            "epoch": epoch + 1,
+            "train_loss": t_loss,
+            "val_loss": v_loss
+        })
 
         print(
-            f"Epoch {epoch + 1}/{args.epochs} | "
+            f"Epoch {epoch + 1}/{config["train"]["epochs"]} | "
             f"Train Loss: {t_loss:.4f} | "
             f"Val Loss: {v_loss:.4f}"
         )
@@ -119,11 +114,10 @@ def main() -> None:
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
 
-    save_loss_plot(history["train_loss"], history["val_loss"], out_dir)
     torch.save(model.state_dict(), out_dir / "model.pth")
 
-    with open(out_dir / "history.json", "w") as f:
-        json.dump(history, f)
+    with open(out_dir / "loss.json", "w") as f:
+        json.dump(history, f, indent=4)
 
 
 if __name__ == "__main__":
