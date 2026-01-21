@@ -1,0 +1,16 @@
+base:
+  image_res: 224
+
+data:
+  tobalance_path: ../data/split
+  balanced_path: ../data_balanced
+  trainset_path: ../data_balanced/phase1/train
+  valset_path: ../data/split/val
+  testset_path: ../data/split/test
+
+train:
+  epochs: 4
+  batch_size: 16
+
+evaluate:
+  batch_size: 16
