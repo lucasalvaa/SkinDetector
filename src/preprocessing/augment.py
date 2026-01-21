@@ -6,6 +6,7 @@ Apply exactly 2 out of 4 possible transformations to training images.
 import argparse
 import random
 import shutil
+import yaml
 from pathlib import Path
 
 import numpy as np
@@ -42,34 +43,22 @@ def apply_vertical_flip(image: Image.Image) -> Image.Image:
     return image.transpose(Image.FLIP_TOP_BOTTOM)
 
 
-def apply_random_strategy(image_path: Path, output_path: Path) -> None:
-    """Select 2 out of 4 augmentations and save the image."""
-    try:
-        with Image.open(image_path) as img:
-            img = img.convert("RGB")
-
-            # Define the pool of available transformations
-            transformations = [
-                apply_gaussian_noise,
-                apply_saturation,
-                apply_horizontal_flip,
-                apply_vertical_flip,
-            ]
-
-            # Select exactly 2 transformations randomly
-            selected_transforms = random.sample(transformations, 2)
-
-            # Apply them sequentially
-            for transform_func in selected_transforms:
-                img = transform_func(img)
-
-            img.save(output_path, quality=95)
-    except (OSError, ValueError) as e:
-        print(f"Error processing {image_path}: {e}")
+def apply_random_strategy(img: Image.Image) -> Image.Image:
+    """Applica esattamente 2 trasformazioni random a un oggetto immagine PIL."""
+    transformations = [
+        apply_gaussian_noise,
+        apply_saturation,
+        apply_horizontal_flip,
+        apply_vertical_flip,
+    ]
+    selected_transforms = random.sample(transformations, 2)
+    for transform_func in selected_transforms:
+        img = transform_func(img)
+    return img
 
 
 def process_dataset(input_dir: Path, output_dir: Path) -> None:
-    """Process the dataset: augment train, copy val/test."""
+    """Processa il dataset: triplica il train, copia val/test."""
     if output_dir.exists():
         shutil.rmtree(output_dir)
     output_dir.mkdir(parents=True)
@@ -81,7 +70,6 @@ def process_dataset(input_dir: Path, output_dir: Path) -> None:
         dst_split = output_dir / split
 
         if not src_split.exists():
-            print(f"Warning: Split {split} not found in {input_dir}")
             continue
 
         print(f"Processing split: {split}...")
@@ -92,26 +80,41 @@ def process_dataset(input_dir: Path, output_dir: Path) -> None:
 
             dst_class_dir = dst_split / class_dir.name
             dst_class_dir.mkdir(parents=True, exist_ok=True)
-
             images = list(class_dir.glob("*"))
 
             for img_path in tqdm(images, desc=f"{split}/{class_dir.name}", leave=False):
-                dst_path = dst_class_dir / img_path.name
+                # 1. Copia l'immagine originale (Sempre)
+                shutil.copy2(img_path, dst_class_dir / img_path.name)
 
+                # 2. Genera versioni aumentate solo per il TRAIN
                 if split == "train":
-                    apply_random_strategy(img_path, dst_path)
-                else:
-                    shutil.copy2(img_path, dst_path)
+                    try:
+                        with Image.open(img_path) as img:
+                            img = img.convert("RGB")
+
+                            # Crea 2 varianti diverse
+                            for i in range(1, 3):
+                                augmented_img = apply_random_strategy(img.copy())
+                                # Cambia il nome per non sovrascrivere l'originale
+                                # Esempio: foto1.jpg -> aug1_foto1.jpg
+                                new_name = f"aug{i}_{img_path.name}"
+                                augmented_img.save(dst_class_dir / new_name, quality=95)
+                    except Exception as e:
+                        print(f"Error processing {img_path}: {e}")
 
 
 def main() -> None:
-    """Entry point for augmentation."""
-    parser = argparse.ArgumentParser(description="Randomized Data Augmentation Tool")
-    parser.add_argument("--input", type=str, required=True, help="Input split path")
-    parser.add_argument("--output", type=str, required=True, help="Output path")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", type=str, required=True)
     args = parser.parse_args()
 
-    process_dataset(Path(args.input), Path(args.output))
+    with open(args.config) as conf_file:
+        config = yaml.safe_load(conf_file)
+
+    process_dataset(
+        Path(config["data"]["inputset_path"]),
+        Path(config["data"]["augmentedset_path"])
+    )
 
 
 if __name__ == "__main__":
