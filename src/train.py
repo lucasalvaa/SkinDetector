@@ -2,15 +2,14 @@
 
 import argparse
 import json
-import yaml
 from pathlib import Path
-from typing import Dict, List
 
-import matplotlib.pyplot as plt
 import torch
-from src.common import DEVICE, get_dataloader, get_model
+import yaml
 from torch import amp, nn, optim
 from torch.utils.data import DataLoader
+
+from src.common import DEVICE, get_dataloader, get_model
 
 
 def validate(model: nn.Module, loader: DataLoader, criterion: nn.Module) -> float:
@@ -79,13 +78,17 @@ def main() -> None:
     out_dir = Path(args.model)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    train_loader = get_dataloader(image_res=config["base"]["image_res"],
-                                  data_path=Path(config["data"]["trainset_path"]),
-                                  batch_size=config["train"]["batch_size"])
+    train_loader = get_dataloader(
+        image_res=config["base"]["image_res"],
+        data_path=Path(config["data"]["trainset_path"]),
+        batch_size=config["train"]["batch_size"],
+    )
 
-    val_loader = get_dataloader(image_res=config["base"]["image_res"],
-                                data_path=Path(config["data"]["valset_path"]),
-                                batch_size=config["train"]["batch_size"])
+    val_loader = get_dataloader(
+        image_res=config["base"]["image_res"],
+        data_path=Path(config["data"]["valset_path"]),
+        batch_size=config["train"]["batch_size"],
+    )
 
     model = get_model(args.model, len(train_loader.dataset.classes))
 
@@ -99,14 +102,10 @@ def main() -> None:
         t_loss = train_one_epoch(model, train_loader, criterion, optimizer, scaler)
         v_loss = validate(model, val_loader, criterion)
 
-        history.append({
-            "epoch": epoch + 1,
-            "train_loss": t_loss,
-            "val_loss": v_loss
-        })
+        history.append({"epoch": epoch + 1, "train_loss": t_loss, "val_loss": v_loss})
 
         print(
-            f"Epoch {epoch + 1}/{config["train"]["epochs"]} | "
+            f"Epoch {epoch + 1}/{config['train']['epochs']} | "
             f"Train Loss: {t_loss:.4f} | "
             f"Val Loss: {v_loss:.4f}"
         )

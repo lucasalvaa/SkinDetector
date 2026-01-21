@@ -6,10 +6,10 @@ Apply exactly 2 out of 4 possible transformations to training images.
 import argparse
 import random
 import shutil
-import yaml
 from pathlib import Path
 
 import numpy as np
+import yaml
 from PIL import Image, ImageEnhance
 from tqdm import tqdm
 
@@ -104,6 +104,7 @@ def process_dataset(input_dir: Path, output_dir: Path) -> None:
 
 
 def main() -> None:
+    """Run data augmentation."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, required=True)
     args = parser.parse_args()
@@ -112,8 +113,7 @@ def main() -> None:
         config = yaml.safe_load(conf_file)
 
     process_dataset(
-        Path(config["data"]["inputset_path"]),
-        Path(config["data"]["augmentedset_path"])
+        Path(config["data"]["inputset_path"]), Path(config["data"]["augmentedset_path"])
     )
 
 

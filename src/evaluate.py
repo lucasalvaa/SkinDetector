@@ -2,13 +2,11 @@
 
 import argparse
 import json
-import yaml
 from pathlib import Path
 from typing import List, Tuple
 
-import matplotlib.pyplot as plt
 import torch
-from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix
+import yaml
 from torch.utils.data import DataLoader
 
 from src.common import DEVICE, get_dataloader, get_model
@@ -59,9 +57,11 @@ def main() -> None:
         config = yaml.safe_load(conf_file)
 
     out_dir = Path(args.model)
-    test_loader = get_dataloader(image_res=config["base"]["image_res"],
-                   data_path=Path(config["data"]["testset_path"]),
-                   batch_size=config["evaluate"]["batch_size"])
+    test_loader = get_dataloader(
+        image_res=config["base"]["image_res"],
+        data_path=Path(config["data"]["testset_path"]),
+        batch_size=config["evaluate"]["batch_size"],
+    )
     classes = test_loader.dataset.classes
 
     model = get_model(args.model, len(classes))
@@ -74,21 +74,12 @@ def main() -> None:
         json.dump({"top1": t1 * 100, "top3": t3 * 100}, f, indent=4)
 
     cm_data = [
-        {"actual": classes[l], "predicted": classes[p]}
-        for l, p in zip(labels, preds)
+        {"actual": classes[label], "predicted": classes[pred]}
+        for label, pred in zip(labels, preds, strict=True)
     ]
 
     with open(out_dir / "cm_data.json", "w") as f:
         json.dump(cm_data, f, indent=4)
-
-'''
-    # Plot Confusion Matrix
-    cm = confusion_matrix(labels, preds)
-    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=classes)
-    _fig, ax = plt.subplots(figsize=(10, 10))
-    disp.plot(xticks_rotation="vertical", ax=ax)
-    plt.savefig(out_dir / "test_confusion_matrix.png")
-'''
 
 
 if __name__ == "__main__":
