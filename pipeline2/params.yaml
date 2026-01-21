@@ -4,7 +4,7 @@ base:
 data:
   tobalance_path: ../data/split
   balanced_path: ../data_balanced
-  trainset_path: ../data_balanced/phase1/train
+  trainset_path: ../data_balanced/phase1
   valset_path: ../data/split/val
   testset_path: ../data/split/test
 

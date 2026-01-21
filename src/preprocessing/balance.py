@@ -136,27 +136,14 @@ def setup_phase_directories(output_dir: Path) -> Tuple[Path, Path]:
     if output_dir.exists():
         shutil.rmtree(output_dir)
 
-    # Structure: data/balanced/phase1/train
-    phase1_train = output_dir / "phase1" / "train"
-    phase2_train = output_dir / "phase2" / "train"
+    # Setup directories
+    phase1_train = output_dir / "phase1"
+    phase2_train = output_dir / "phase2"
 
     phase1_train.mkdir(parents=True)
     phase2_train.mkdir(parents=True)
 
     return phase1_train, phase2_train
-
-
-def copy_validation_set(input_dir: Path, output_dir: Path) -> None:
-    """Copy the validation set to both phases to satisfy train.py requirements."""
-    src_val = input_dir / "val"
-
-    if not src_val.exists():
-        print("Warning: Validation set not found. Training script might fail.")
-        return
-
-    print("Mirroring validation set to Phase 1 and Phase 2...")
-    shutil.copytree(src_val, output_dir / "phase1" / "val")
-    shutil.copytree(src_val, output_dir / "phase2" / "val")
 
 
 def process_balancing(input_dir: Path, output_dir: Path) -> None:
@@ -209,7 +196,6 @@ def process_balancing(input_dir: Path, output_dir: Path) -> None:
 
     # 5. Mirror Validation Set (Critical step for compatibility)
     # We pass 'input_dir' which is 'data/split' (containing train and val)
-    copy_validation_set(input_dir, output_dir)
 
     print("\n" + "=" * 40)
     print("BALANCING COMPLETE")
