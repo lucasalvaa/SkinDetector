@@ -14,6 +14,7 @@ from typing import Dict, List, Tuple
 
 import numpy as np
 import torch
+import yaml
 from PIL import Image
 from sklearn.cluster import KMeans
 from sklearn.metrics import pairwise_distances_argmin_min
@@ -172,7 +173,7 @@ def process_balancing(input_dir: Path, output_dir: Path) -> None:
     for class_dir in class_dirs:
         images = [
             f for f in class_dir.iterdir()
-            if f.suffix.lower() in {".jpg", ".jpeg", ".png", ".bmp"}
+            if f.suffix.lower() in {".jpg", ".jpeg", ".png"}
         ]
         counts[class_dir.name] = images
 
@@ -192,7 +193,7 @@ def process_balancing(input_dir: Path, output_dir: Path) -> None:
 
         if len(images) <= min_count:
             selected, remaining = images, []
-            print(f" -> Keeping all {len(images)} samples (Minority).")
+            print(f" -> Keeping all {len(images)} samples (Minority class).")
         else:
             selected, remaining = select_representative_samples(images, k=min_count)
             print(
@@ -220,11 +221,19 @@ def process_balancing(input_dir: Path, output_dir: Path) -> None:
 def main() -> None:
     """Entry point for the balancing script."""
     parser = argparse.ArgumentParser(description="Clustering-based Undersampling")
-    parser.add_argument("--input", type=str, required=True, help="Path to data/split")
-    parser.add_argument("--output", type=str, required=True, help="Output path")
+    parser.add_argument("--config", type=str, required=True)
     args = parser.parse_args()
 
-    process_balancing(Path(args.input), Path(args.output))
+    with open(args.config) as conf_file:
+        config = yaml.safe_load(conf_file)
+
+    out_dir = Path(config["data"]["balanced_path"])
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    process_balancing(
+        Path(config["data"]["tobalance_path"]),
+        Path(config["data"]["balanced_path"])
+    )
 
 
 if __name__ == "__main__":
