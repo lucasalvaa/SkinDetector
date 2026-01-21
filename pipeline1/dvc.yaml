@@ -1,11 +1,21 @@
 stages:
+  augment:
+    cmd: PYTHONPATH=.. python -m src.preprocessing.augment --config params.yaml
+    deps:
+      - ../src/preprocessing/augment.py
+      - ../data/split
+    params:
+      - data
+    outs:
+      - ../data_augmented
+
   train:
     foreach: [ effnet_s, effnet_m, convnext ]
     do:
       cmd: PYTHONPATH=.. python -m src.train --model ${item} --config params.yaml
       deps:
-        - ../data/split/train
-        - ../data/split/val
+        - ../data_augmented/train
+        - ../data_augmented/val
         - ../src/train.py
         - ../src/common.py
       params:
@@ -21,7 +31,7 @@ stages:
     do:
       cmd: PYTHONPATH=.. python -m src.evaluate --model ${item} --config params.yaml
       deps:
-        - ../data/split/test
+        - ../data_augmented/test
         - ../src/evaluate.py
         - ../src/common.py
         - ${item}/model.pth
@@ -37,7 +47,7 @@ stages:
             template: confusion
             x: actual
             y: predicted
-            title: "Baseline - Confusion Matrix - ${item}"
+            title: "Pipeline 1 - Confusion Matrix - ${item}"
             cache: false
 
 plots:
@@ -49,25 +59,25 @@ plots:
         effnet_s/loss.json: train_loss
         effnet_m/loss.json: train_loss
         convnext/loss.json: train_loss
-      title: "Baseline - Comparison: Training Loss per Model"
+      title: "Pipeline 1 - Comparison: Training Loss per Model"
 
   - effnet_s_curves:
       template: linear
       x: epoch
       y:
         effnet_s/loss.json: [train_loss, val_loss]
-      title: "Baseline - EfficientNet S: Train vs Val"
+      title: "Pipeline 1 - EfficientNet S: Train vs Val"
 
   - effnet_m_curves:
       template: linear
       x: epoch
       y:
         effnet_m/loss.json: [train_loss, val_loss]
-      title: "Baseline - EfficientNet M: Train vs Val"
+      title: "Pipeline 1 - EfficientNet M: Train vs Val"
 
   - convnext_curves:
       template: linear
       x: epoch
       y:
         convnext/loss.json: [train_loss, val_loss]
-      title: "Baseline - ConvNeXt: Train vs Val"
+      title: "Pipeline 1 - ConvNeXt: Train vs Val"
