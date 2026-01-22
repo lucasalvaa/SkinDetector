@@ -53,7 +53,7 @@ stages:
               template: confusion
               x: actual
               y: predicted
-              title: "Confusion Matrix - ${item}"
+              title: "Pipeline 2 - Balance CM - ${item}"
               cache: false
 
   finetuning:
@@ -99,7 +99,7 @@ stages:
             template: confusion
             x: actual
             y: predicted
-            title: "Confusion Matrix - Finetuned ${item}"
+            title: "Pipeline 2 - Balance + Finetune CM - ${item}"
             cache: false
 
 
@@ -112,25 +112,25 @@ plots:
           effnet_s/loss.json: train_loss
           effnet_m/loss.json: train_loss
           convnext/loss.json: train_loss
-        title: "Comparison: Training Loss per Model"
+        title: "Pipeline 2 - Comparison: Training Loss per Model"
 
     - effnet_s_curves:
         template: linear
         x: epoch
         y:
-          effnet_s/loss.json: [ train_loss, val_loss ]
-        title: "EfficientNet S: Train vs Val"
+          effnet_s/finetuned/loss.json: [ train_loss, val_loss ]
+        title: "Pipeline 2 - FT EfficientNet S: Train vs Val"
 
     - effnet_m_curves:
         template: linear
         x: epoch
         y:
-          effnet_m/loss.json: [ train_loss, val_loss ]
-        title: "EfficientNet M: Train vs Val"
+          effnet_m/finetuned/loss.json: [ train_loss, val_loss ]
+        title: "Pipeline 2 - FT EfficientNet M: Train vs Val"
 
     - convnext_curves:
         template: linear
         x: epoch
         y:
-          convnext/loss.json: [ train_loss, val_loss ]
-        title: "ConvNeXt: Train vs Val"
+          convnext/finetuned/loss.json: [ train_loss, val_loss ]
+        title: "Pipeline 2 - FT ConvNeXt: Train vs Val"

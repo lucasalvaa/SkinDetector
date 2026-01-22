@@ -7,6 +7,7 @@ data:
   testset_path: data/split/test
 
 train:
+  lr: 0.001
   epochs: 4
   batch_size: 16
 
