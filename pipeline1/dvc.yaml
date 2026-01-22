@@ -1,49 +1,55 @@
 stages:
   augment:
-    cmd: PYTHONPATH=.. python -m src.preprocessing.augment --config params.yaml
+    wdir: ..
+    cmd: python -m src.preprocessing.augment --config pipeline1/params.yaml
     deps:
-      - ../src/preprocessing/augment.py
-      - ../data/split
+      - src/preprocessing/augment.py
+      - data/split
     params:
-      - data
+      - pipeline1/params.yaml:
+        - data
     outs:
-      - ../data_augmented
+      - data_augmented
 
   train:
     foreach: [ effnet_s, effnet_m, convnext ]
     do:
-      cmd: PYTHONPATH=.. python -m src.train --model ${item} --config params.yaml
+      wdir: ..
+      cmd: python -m src.train --model ${item} --config pipeline1/params.yaml --output_dir pipeline1/${item}
       deps:
-        - ../data_augmented/train
-        - ../data_augmented/val
-        - ../src/train.py
-        - ../src/common.py
+        - data_augmented/train
+        - data_augmented/val
+        - src/train.py
+        - src/common.py
       params:
-        - base
-        - data
-        - train
+        - pipeline1/params.yaml:
+          - base
+          - data
+          - train
       outs:
-        - ${item}/model.pth
-        - ${item}/loss.json
+        - pipeline1/${item}/model.pth
+        - pipeline1/${item}/loss.json
 
   evaluate:
     foreach: [ effnet_s, effnet_m, convnext ]
     do:
-      cmd: PYTHONPATH=.. python -m src.evaluate --model ${item} --config params.yaml
+      wdir: ..
+      cmd: python -m src.evaluate --model ${item} --config pipeline1/params.yaml --output_dir pipeline1/${item}
       deps:
-        - ../data_augmented/test
-        - ../src/evaluate.py
-        - ../src/common.py
-        - ${item}/model.pth
+        - data_augmented/test
+        - src/evaluate.py
+        - src/common.py
+        - pipeline1/${item}/model.pth
       params:
-        - base
-        - data
-        - evaluate
+        - pipeline1/params.yaml:
+          - base
+          - data
+          - evaluate
       metrics:
-        - ${item}/metrics.json:
+        - pipeline1/${item}/metrics.json:
             cache: false
       plots:
-        - ${item}/cm_data.json:
+        - pipeline1/${item}/cm_data.json:
             template: confusion
             x: actual
             y: predicted
