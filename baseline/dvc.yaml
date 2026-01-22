@@ -2,38 +2,42 @@ stages:
   train:
     foreach: [ effnet_s, effnet_m, convnext ]
     do:
-      cmd: PYTHONPATH=.. python -m src.train --model ${item} --config params.yaml
+      wdir: ..
+      cmd: python -m src.train --model ${item} --config baseline/params.yaml --output_dir baseline/${item}
       deps:
-        - ../data/split/train
-        - ../data/split/val
-        - ../src/train.py
-        - ../src/common.py
+        - data/split/train
+        - data/split/val
+        - src/train.py
+        - src/common.py
       params:
-        - base
-        - data
-        - train
+        - baseline/params.yaml:
+          - base
+          - data
+          - train
       outs:
-        - ${item}/model.pth
-        - ${item}/loss.json
+        - baseline/${item}/model.pth
+        - baseline/${item}/loss.json
 
   evaluate:
     foreach: [ effnet_s, effnet_m, convnext ]
     do:
-      cmd: PYTHONPATH=.. python -m src.evaluate --model ${item} --config params.yaml
+      wdir: ..
+      cmd: python -m src.evaluate --model ${item} --config baseline/params.yaml --output_dir baseline/${item}
       deps:
-        - ../data/split/test
-        - ../src/evaluate.py
-        - ../src/common.py
-        - ${item}/model.pth
+        - data/split/test
+        - src/evaluate.py
+        - src/common.py
+        - baseline/${item}/model.pth
       params:
-        - base
-        - data
-        - evaluate
+        - baseline/params.yaml:
+          - base
+          - data
+          - evaluate
       metrics:
-        - ${item}/metrics.json:
+        - baseline/${item}/metrics.json:
             cache: false
       plots:
-        - ${item}/cm_data.json:
+        - baseline/${item}/cm_data.json:
             template: confusion
             x: actual
             y: predicted
