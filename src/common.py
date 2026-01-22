@@ -9,39 +9,10 @@ from torchvision import datasets, models, transforms
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-'''
-def get_dataloaders(data_path: Path, batch_size: int) -> Dict[str, DataLoader]:
-    """Create data loaders with a configurable batch size.
 
-    Args:
-        data_path: Path to the training data.
-        batch_size: Number of images per batch.
-
-    Returns:
-        Dictionary containing DataLoaders for each split.
-
-    """
-    root = data_path.parent
-    tfs = transforms.Compose(
-        [
-            # transforms.Resize((224, 224)),
-            transforms.ToTensor(),
-            # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-        ]
-    )
-
-    return {
-        x: DataLoader(
-            datasets.ImageFolder(root / x, tfs),
-            batch_size=batch_size,
-            shuffle=(x == "train"),
-        )
-        for x in ["train", "val", "test"]
-    }
-'''
-
-
-def get_dataloader(image_res: int, data_path: Path, batch_size: int) -> DataLoader:
+def get_dataloader(
+    data_path: Path, batch_size: int, image_res: int = 224
+) -> DataLoader:
     """Create a single data loader with a configurable batch size.
 
     Args:

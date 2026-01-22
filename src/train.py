@@ -70,12 +70,14 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str, required=True)
     parser.add_argument("--config", type=str, required=True)
+    parser.add_argument("--output_dir", type=str, required=True)
+
     args = parser.parse_args()
 
     with open(args.config) as conf_file:
         config = yaml.safe_load(conf_file)
 
-    out_dir = Path(args.model)
+    out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     train_loader = get_dataloader(

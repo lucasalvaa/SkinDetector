@@ -1,54 +1,107 @@
 stages:
   balancing:
-    cmd: PYTHONPATH=.. python -m src.preprocessing.balance --config params.yaml
+    wdir: ..
+    cmd: python -m src.preprocessing.balance --config pipeline2/params.yaml
     deps:
-      - ../src/preprocessing/balance.py
-      - ../data/split
+      - src/preprocessing/balance.py
+      - data/split
     params:
-      - data
+      - pipeline2/params.yaml:
+        - data
     outs:
-      - ../data_balanced
+      - data_balanced
 
   train:
     foreach: [ effnet_s, effnet_m, convnext ]
     do:
-      cmd: PYTHONPATH=.. python -m src.train --model ${item} --config params.yaml
+      wdir: ..
+      cmd: python -m src.train --model ${item} --config pipeline2/params.yaml --output_dir pipeline2/${item}
       deps:
-        - ../data_balanced
-        - ../data/split/val
-        - ../src/train.py
-        - ../src/common.py
+        - data_balanced
+        - data/split/val
+        - src/train.py
+        - src/common.py
       params:
-        - base
-        - data
-        - train
+        - pipeline2/params.yaml:
+          - base
+          - data
+          - train
       outs:
-        - ${item}/model.pth
-        - ${item}/loss.json
+        - pipeline2/${item}/model.pth
+        - pipeline2/${item}/loss.json
 
   evaluate:
       foreach: [ effnet_s, effnet_m, convnext ]
       do:
-        cmd: PYTHONPATH=.. python -m src.evaluate --model ${item} --config params.yaml
+        wdir: ..
+        cmd: python -m src.evaluate --model ${item} --config pipeline2/params.yaml --output_dir pipeline2/${item}
         deps:
-          - ../data/split/test
-          - ../src/evaluate.py
-          - ../src/common.py
-          - ${item}/model.pth
+          - data/split/test
+          - src/evaluate.py
+          - src/common.py
+          - pipeline2/${item}/model.pth
         params:
-          - base
-          - data
-          - evaluate
+          - pipeline2/params.yaml:
+            - base
+            - data
+            - evaluate
         metrics:
-          - ${item}/metrics.json:
+          - pipeline2/${item}/metrics.json:
               cache: false
         plots:
-          - ${item}/cm_data.json:
+          - pipeline2/${item}/cm_data.json:
               template: confusion
               x: actual
               y: predicted
               title: "Confusion Matrix - ${item}"
               cache: false
+
+  finetuning:
+    foreach: [ effnet_s, effnet_m, convnext ]
+    do:
+      wdir: ..
+      cmd: python -m src.finetune --model ${item} --config pipeline2/params.yaml --output_dir pipeline2/${item}/finetuned
+      deps:
+        - src/finetune.py
+        - src/common.py
+        - data/split/train
+        - pipeline2/${item}/model.pth
+      params:
+        - pipeline2/params.yaml:
+            - base
+            - data
+            - finetuning
+      outs:
+        - pipeline2/${item}/finetuned/model.pth
+        - pipeline2/${item}/finetuned/loss.json
+
+
+  ft-evaluate:
+    foreach: [ effnet_s, effnet_m, convnext ]
+    do:
+      wdir: ..
+      cmd: python -m src.evaluate --model ${item} --config pipeline2/params.yaml --output_dir pipeline2/${item}/finetuned
+      deps:
+        - data/split/test
+        - src/evaluate.py
+        - src/common.py
+        - pipeline2/${item}/finetuned/model.pth
+      params:
+        - pipeline2/params.yaml:
+          - base
+          - data
+          - evaluate
+      metrics:
+        - pipeline2/${item}/finetuned/metrics.json:
+            cache: false
+      plots:
+        - pipeline2/${item}/finetuned/cm_data.json:
+            template: confusion
+            x: actual
+            y: predicted
+            title: "Confusion Matrix - Finetuned ${item}"
+            cache: false
+
 
 plots:
     - Training_Loss_Comparison:

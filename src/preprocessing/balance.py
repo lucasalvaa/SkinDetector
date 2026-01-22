@@ -85,8 +85,8 @@ def extract_features(file_paths: List[Path]) -> np.ndarray:
 
 
 def select_representative_samples(
-        file_paths: List[Path], k: int
-) -> Tuple[List[Path], List[Path]]:
+    file_paths: List[Path], k: int
+) -> List[Path]:
     """Select k representative images using K-Means clustering.
 
     Args:
@@ -94,11 +94,11 @@ def select_representative_samples(
         k: Number of samples to select.
 
     Returns:
-        Tuple (selected_paths, remaining_paths).
+        selected_paths: Paths to selected images.
 
     """
     if len(file_paths) <= k:
-        return file_paths, []
+        return file_paths
 
     # 1. Extract Features (Embeddings)
     features = extract_features(file_paths)
@@ -123,33 +123,16 @@ def select_representative_samples(
         extra = np.random.choice(remaining_indices, needed, replace=False)
         selected_indices_set.update(extra)
 
-    selected_paths = [file_paths[i] for i in selected_indices_set]
-    remaining_paths = [
-        file_paths[i] for i in range(len(file_paths)) if i not in selected_indices_set
-    ]
-
-    return selected_paths, remaining_paths
-
-
-def setup_phase_directories(output_dir: Path) -> Tuple[Path, Path]:
-    """Create directory structure for Phase 1 and Phase 2."""
-    if output_dir.exists():
-        shutil.rmtree(output_dir)
-
-    # Setup directories
-    phase1_train = output_dir / "phase1"
-    phase2_train = output_dir / "phase2"
-
-    phase1_train.mkdir(parents=True)
-    phase2_train.mkdir(parents=True)
-
-    return phase1_train, phase2_train
+    return [file_paths[i] for i in selected_indices_set]
 
 
 def process_balancing(input_dir: Path, output_dir: Path) -> None:
     """Execute the balancing pipeline."""
     # 1. Setup Directories
-    p1_train_dir, p2_train_dir = setup_phase_directories(output_dir)
+    if output_dir.exists():
+        shutil.rmtree(output_dir)
+
+    output_dir.mkdir(parents=True)
 
     # 2. Analyze Class Distribution in TRAIN set only
     train_input_dir = input_dir / "train"
@@ -159,7 +142,8 @@ def process_balancing(input_dir: Path, output_dir: Path) -> None:
     print("Analyzing class distribution in training set...")
     for class_dir in class_dirs:
         images = [
-            f for f in class_dir.iterdir()
+            f
+            for f in class_dir.iterdir()
             if f.suffix.lower() in {".jpg", ".jpeg", ".png"}
         ]
         counts[class_dir.name] = images
@@ -173,34 +157,29 @@ def process_balancing(input_dir: Path, output_dir: Path) -> None:
     for class_name, images in counts.items():
         print(f"\nProcessing class: {class_name}")
 
-        dest_t1 = p1_train_dir / class_name
-        dest_t2 = p2_train_dir / class_name
-        dest_t1.mkdir(parents=True, exist_ok=True)
-        dest_t2.mkdir(parents=True, exist_ok=True)
+        dest = output_dir / class_name
+        dest.mkdir(parents=True, exist_ok=True)
 
         if len(images) <= min_count:
-            selected, remaining = images, []
+            selected = images
             print(f" -> Keeping all {len(images)} samples (Minority class).")
         else:
-            selected, remaining = select_representative_samples(images, k=min_count)
+            selected = select_representative_samples(images, k=min_count)
             print(
-                f" -> Clustering: {len(selected)} to Phase 1, "
-                f"{len(remaining)} to Phase 2."
+                f" -> Clustering: {len(selected)} selected, "
+                f"{len(images) - len(selected)} excluded."
             )
 
         # Copy files
         for p in selected:
-            shutil.copy2(p, dest_t1 / p.name)
-        for p in remaining:
-            shutil.copy2(p, dest_t2 / p.name)
+            shutil.copy2(p, dest / p.name)
 
     # 5. Mirror Validation Set (Critical step for compatibility)
     # We pass 'input_dir' which is 'data/split' (containing train and val)
 
     print("\n" + "=" * 40)
     print("BALANCING COMPLETE")
-    print(f"Phase 1 Dataset: {output_dir / 'phase1'}")
-    print(f"Phase 2 Dataset: {output_dir / 'phase2'}")
+    print(f"Balanced dataset: {output_dir}")
     print("=" * 40)
 
 
@@ -217,8 +196,7 @@ def main() -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     process_balancing(
-        Path(config["data"]["tobalance_path"]),
-        Path(config["data"]["balanced_path"])
+        Path(config["data"]["tobalance_path"]), Path(config["data"]["balanced_path"])
     )
 
 
