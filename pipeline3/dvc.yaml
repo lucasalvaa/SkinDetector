@@ -1,0 +1,148 @@
+stages:
+  balancing:
+    wdir: ..
+    cmd: python -m src.preprocessing.balance --config pipeline3/params.yaml
+    deps:
+      - src/preprocessing/balance.py
+      - data/split
+    params:
+      - pipeline3/params.yaml:
+        - data
+    outs:
+      - pipeline3/data_balanced
+
+  augment:
+    wdir: ..
+    cmd: python -m src.preprocessing.augment --config pipeline3/params.yaml
+    deps:
+      - src/preprocessing/balance.py
+      - pipeline3/data_balanced
+    params:
+      - pipeline3/params.yaml:
+          - data
+    outs:
+      - pipeline3/data_augmented
+
+  train:
+    foreach: [ effnet_s, effnet_m, convnext ]
+    do:
+      wdir: ..
+      cmd: python -m src.train --model ${item} --config pipeline3/params.yaml --output_dir pipeline3/${item}
+      deps:
+        - pipeline3/data_augmented
+        - data/split/val
+        - src/train.py
+        - src/common.py
+      params:
+        - pipeline3/params.yaml:
+          - base
+          - data
+          - train
+      outs:
+        - pipeline3/${item}/model.pth
+        - pipeline3/${item}/loss.json
+
+  evaluate:
+      foreach: [ effnet_s, effnet_m, convnext ]
+      do:
+        wdir: ..
+        cmd: python -m src.evaluate --model ${item} --config pipeline3/params.yaml --output_dir pipeline3/${item}
+        deps:
+          - data/split/test
+          - src/evaluate.py
+          - src/common.py
+          - pipeline3/${item}/model.pth
+        params:
+          - pipeline3/params.yaml:
+            - base
+            - data
+            - evaluate
+        metrics:
+          - pipeline3/${item}/metrics.json:
+              cache: false
+        plots:
+          - pipeline3/${item}/cm_data.json:
+              template: confusion
+              x: actual
+              y: predicted
+              title: "Confusion Matrix - ${item}"
+              cache: false
+
+  finetuning:
+    foreach: [ effnet_s, effnet_m, convnext ]
+    do:
+      wdir: ..
+      cmd: python -m src.finetune --model ${item} --config pipeline3/params.yaml --output_dir pipeline3/${item}/finetuned
+      deps:
+        - src/finetune.py
+        - src/common.py
+        - data/split/train
+        - pipeline3/${item}/model.pth
+      params:
+        - pipeline3/params.yaml:
+            - base
+            - data
+            - finetuning
+      outs:
+        - pipeline3/${item}/finetuned/model.pth
+        - pipeline3/${item}/finetuned/loss.json
+
+
+  ft-evaluate:
+    foreach: [ effnet_s, effnet_m, convnext ]
+    do:
+      wdir: ..
+      cmd: python -m src.evaluate --model ${item} --config pipeline3/params.yaml --output_dir pipeline3/${item}/finetuned
+      deps:
+        - data/split/test
+        - src/evaluate.py
+        - src/common.py
+        - pipeline3/${item}/finetuned/model.pth
+      params:
+        - pipeline3/params.yaml:
+          - base
+          - data
+          - evaluate
+      metrics:
+        - pipeline3/${item}/finetuned/metrics.json:
+            cache: false
+      plots:
+        - pipeline3/${item}/finetuned/cm_data.json:
+            template: confusion
+            x: actual
+            y: predicted
+            title: "Confusion Matrix - Finetuned ${item}"
+            cache: false
+
+
+plots:
+    - Training_Loss_Comparison:
+        template: linear
+        x: epoch
+        y:
+          # Qui confrontiamo le performance di addestramento tra i modelli
+          effnet_s/loss.json: train_loss
+          effnet_m/loss.json: train_loss
+          convnext/loss.json: train_loss
+        title: "Comparison: Training Loss per Model"
+
+    - effnet_s_curves:
+        template: linear
+        x: epoch
+        y:
+          effnet_s/loss.json: [ train_loss, val_loss ]
+        title: "EfficientNet S: Train vs Val"
+
+    - effnet_m_curves:
+        template: linear
+        x: epoch
+        y:
+          effnet_m/loss.json: [ train_loss, val_loss ]
+        title: "EfficientNet M: Train vs Val"
+
+    - convnext_curves:
+        template: linear
+        x: epoch
+        y:
+          convnext/loss.json: [ train_loss, val_loss ]
+        title: "ConvNeXt: Train vs Val"

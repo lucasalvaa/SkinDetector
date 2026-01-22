@@ -1,0 +1,24 @@
+base:
+  image_res: 224
+
+data:
+  tobalance_path: data/split
+  balanced_path: pipeline3/data_balanced/train
+  inputset_path: pipeline3/data_balanced
+  augmentedset_path: pipeline3/data_augmented
+  trainset_path: pipeline3/data_augmented/train
+  valset_path: data/split/val
+  testset_path: data/split/test
+
+train:
+  epochs: 4
+  batch_size: 16
+
+evaluate:
+  batch_size: 16
+
+finetuning:
+  data_path: data/split/train
+  lr: 0.0001
+  epochs: 5
+  batch_size: 16
