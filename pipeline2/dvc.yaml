@@ -49,7 +49,7 @@ stages:
           - pipeline2/${item}/metrics.json:
               cache: false
         plots:
-          - pipeline2/${item}/cm_data.json:
+          - pipeline2/${item}/cm_data.csv:
               template: confusion
               x: actual
               y: predicted

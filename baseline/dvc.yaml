@@ -37,7 +37,7 @@ stages:
         - baseline/${item}/metrics.json:
             cache: false
       plots:
-        - baseline/${item}/cm_data.json:
+        - baseline/${item}/cm_data.csv:
             template: confusion
             x: actual
             y: predicted
