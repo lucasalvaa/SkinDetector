@@ -10,7 +10,7 @@ to function without modification.
 import argparse
 import shutil
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 import numpy as np
 import torch
@@ -77,16 +77,13 @@ def extract_features(file_paths: List[Path]) -> np.ndarray:
     with torch.no_grad():
         for batch in tqdm(loader, desc="Extraction"):
             batch = batch.to(DEVICE)
-            # Output shape: (Batch, 512)
             embedding = model(batch)
             features_list.append(embedding.cpu().numpy())
 
     return np.vstack(features_list)
 
 
-def select_representative_samples(
-    file_paths: List[Path], k: int
-) -> List[Path]:
+def select_representative_samples(file_paths: List[Path], k: int) -> List[Path]:
     """Select k representative images using K-Means clustering.
 
     Args:

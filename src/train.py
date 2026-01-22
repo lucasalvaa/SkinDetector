@@ -95,7 +95,7 @@ def main() -> None:
     model = get_model(args.model, len(train_loader.dataset.classes))
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    optimizer = optim.Adam(model.parameters(), config["train"]["lr"])
     scaler = amp.GradScaler()
 
     history = []
