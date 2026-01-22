@@ -3,8 +3,10 @@ base:
 
 data:
   tobalance_path: data/split
-  balanced_path: data_balanced/train
-  trainset_path: data_balanced/train
+  balanced_path: pipeline3/data_balanced/train
+  inputset_path: pipeline3/data_balanced
+  augmentedset_path: pipeline3/data_augmented
+  trainset_path: pipeline3/data_augmented/train
   valset_path: data/split/val
   testset_path: data/split/test
 
