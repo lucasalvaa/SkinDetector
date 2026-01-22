@@ -2,11 +2,11 @@ base:
   image_res: 224
 
 data:
-  inputset_path: ../data/split
-  augmentedset_path: ../data_augmented
-  trainset_path: ../data_augmented/train
-  valset_path: ../data/split/val
-  testset_path: ../data/split/test
+  inputset_path: data/split
+  augmentedset_path: data_augmented
+  trainset_path: data_augmented/train
+  valset_path: data/split/val
+  testset_path: data/split/test
 
 
 train:
