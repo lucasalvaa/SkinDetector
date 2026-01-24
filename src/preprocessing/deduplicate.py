@@ -1,18 +1,19 @@
+"""Module for dataset deduplication based on MD5 hashing."""
+
+import argparse
+import csv
 import hashlib
-import os
+import json
+import shutil
+import sys
 from collections import defaultdict
+from pathlib import Path
+
+import yaml
 
 
-def get_image_hash(filepath: str) -> str:
-    """Generate an MD5 hash for a file to identify identical content.
-
-    Args:
-        filepath: The path to the image file.
-
-    Return:
-        The hexadecimal MD5 hash of the file.
-
-    """
+def get_image_hash(filepath: Path) -> str:
+    """Generate an MD5 hash for a file."""
     hash_md5 = hashlib.md5()
     with open(filepath, "rb") as f:
         for chunk in iter(lambda: f.read(4096), b""):
@@ -20,137 +21,177 @@ def get_image_hash(filepath: str) -> str:
     return hash_md5.hexdigest()
 
 
-def find_duplicates(root_dir: str) -> dict[str, list[str]]:
-    """Scan subdirectories and map hashes to file paths.
-
-    Args:
-        root_dir: The root directory containing disease subdirectories.
-
-    Return:
-        A dictionary mapping hashes to lists of duplicate file paths.
-
-    """
+def scan_dataset(root_dir: Path) -> dict[str, list[Path]]:
+    """Scan subdirectories and map ALL hashes to file paths."""
     hashes = defaultdict(list)
-    categories = [
-        "demodicosis",
-        "dermatitis",
-        "fungal_infections",
-        "healthy",
-        "hypersensitivity",
-        "ringworm",
-    ]
 
-    print(f"Scanning directories in {root_dir}...")
+    if not root_dir.exists():
+        print(f"[-] Error: Input directory '{root_dir}' does not exist.")
+        sys.exit(1)
 
-    for category in categories:
-        cat_path = os.path.join(root_dir, category)
-        if not os.path.exists(cat_path):
-            continue
+    categories = [d for d in root_dir.iterdir() if d.is_dir()]
+    valid_extensions = {'.jpg', '.jpeg', '.png', '.bmp'}
 
-        for filename in os.listdir(cat_path):
-            file_path = os.path.join(cat_path, filename)
-            if os.path.isfile(file_path):
+    print(f"[*] Scanning directories in '{root_dir}'...")
+
+    for cat_path in categories:
+        for file_path in cat_path.glob("*"):
+            if file_path.is_file() and file_path.suffix.lower() in valid_extensions:
                 file_hash = get_image_hash(file_path)
                 hashes[file_hash].append(file_path)
 
-    return {h: paths for h, paths in hashes.items() if len(paths) > 1}
+    return hashes
 
 
-def run_deduplication(dir_name: str) -> None:  # noqa: C901
-    """Find duplicate images, save a report and prompt for deletion.
+def generate_csv_report(
+        duplicates: dict[str, list[Path]], report_path: Path
+) -> None:
+    """Generate a CSV report listing all duplicates found."""
+    print(f"[*] Generating detailed CSV report at '{report_path}'...")
 
-    This function identifies duplicates, tracks cross-class inconsistencies,
-    and logs the number of removals per category.
+    header = ["Hash", "Issue_Type", "Class", "File_Path"]
 
-    Args:
-        dir_name: The name of the subdirectory within "data" to search.
+    with open(report_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(header)
 
-    """
-    root_data_dir = os.path.join("../../data", dir_name)
-    report_path = "report/duplicates.txt"
-    os.makedirs("report", exist_ok=True)
-
-    duplicates = find_duplicates(root_data_dir)
-
-    if not duplicates:
-        print("No duplicate images found.")
-        return
-
-    files_to_delete: list[str] = []
-
-    inconsistent_cross_class_count = 0
-    removed_per_class = defaultdict(int)
-    total_deleted_per_class = defaultdict(int)
-
-    with open(report_path, "w") as f:
-        f.write("DUPLICATE IMAGES REPORT\n" + "=" * 24 + "\n")
-
-        for h, paths in duplicates.items():
-            f.write(f"\nHash: {h}\n")
-
-            for p in paths:
-                f.write(f" - {p}\n")
-
-            classes_involved = {os.path.basename(os.path.dirname(p)) for p in paths}
+        for file_hash, paths in duplicates.items():
+            classes_involved = {p.parent.name for p in paths}
 
             if len(classes_involved) > 1:
-                # Cross-class duplicates
-                inconsistent_cross_class_count += len(paths)
-                f.write(" [!] CROSS-CLASS ERROR: Marking ALL for deletion.\n")
-                files_to_delete.extend(paths)
-                for p in paths:
-                    total_deleted_per_class[os.path.basename(os.path.dirname(p))] += 1
+                issue_type = "CROSS_CLASS_CONFLICT"
             else:
-                # Same-class duplicates
-                current_class = next(iter(classes_involved))
-                duplicates_in_folder = paths[1:]
+                issue_type = "SAME_CLASS_REDUNDANCY"
 
-                f.write(f" [i] Same-class duplicates: Keeping {paths[0]}\n")
+            for p in paths:
+                writer.writerow([file_hash, issue_type, p.parent.name, str(p)])
 
-                removed_per_class[current_class] += len(duplicates_in_folder)
-                total_deleted_per_class[current_class] += len(duplicates_in_folder)
-                files_to_delete.extend(duplicates_in_folder)
 
-        # Add deduplication stats in the report
-        f.write("\n" + "=" * 30 + "\n")
-        f.write("SUMMARY STATISTICS\n")
-        f.write("=" * 30 + "\n")
-        f.write(
-            f"Inconsistent cross-class images deleted: "
-            f"{inconsistent_cross_class_count}\n\n"
-        )
+def create_clean_dataset(
+        all_hashes: dict[str, list[Path]], src_root: Path, dest_root: Path
+) -> dict:
+    """Copy valid files to a new directory."""
+    if dest_root.exists():
+        shutil.rmtree(dest_root)
+    dest_root.mkdir(parents=True)
 
-        f.write("Redundant duplicates removed per class (same directory):\n")
-        for category, count in removed_per_class.items():
-            f.write(f" - {category}: {count}\n")
+    stats = {
+        "unique_files_copied": 0,
+        "redundant_files_skipped": 0,
+        "cross_class_conflict_skipped": 0,
+        "removed_per_class": defaultdict(int),
+    }
 
-        f.write("\nTotal images to be deleted per class (inconsistent + redundant):\n")
-        for category, count in total_deleted_per_class.items():
-            f.write(f" - {category}: {count}\n")
-        f.write(f"\nTOTAL FILES TO BE DELETED: {len(files_to_delete)}\n")
+    print(f"[*] Creating clean dataset in '{dest_root}'...")
 
-    print(f"\nFound {len(duplicates)} groups of duplicate hashes.")
-    print(f"Total files marked for deletion: {len(files_to_delete)}")
-    print(f"Summary saved to: {report_path}")
+    for _, paths in all_hashes.items():
+        classes_involved = {p.parent.name for p in paths}
 
-    if not files_to_delete:
-        return
+        # Case 1: Cross-class duplicates -> SKIP ALL
+        if len(classes_involved) > 1:
+            stats["cross_class_conflict_skipped"] += len(paths)
+            for p in paths:
+                stats["removed_per_class"][p.parent.name] += 1
+            continue
 
-    confirm = input(
-        f"Proceed with deletion of {len(files_to_delete)} files? [y/N]: "
-    ).lower()
+        # Case 2: Same-class duplicates -> COPY ONE
+        if len(paths) > 1:
+            num_redundant = len(paths) - 1
+            stats["redundant_files_skipped"] += num_redundant
+            stats["removed_per_class"][paths[0].parent.name] += num_redundant
+            paths_to_copy = [paths[0]]
+        else:
+            # Case 3: Unique -> COPY
+            stats["unique_files_copied"] += 1
+            paths_to_copy = paths
 
-    if confirm == "n":
-        print("\nOperation cancelled.")
-        return
+        # Copy
+        for src_path in paths_to_copy:
+            rel_path = src_path.relative_to(src_root)
+            dest_path = dest_root / rel_path
 
-    for path in files_to_delete:
+            dest_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src_path, dest_path)
+
+    return stats
+
+
+def generate_summary_report(stats: dict, report_path: Path) -> None:
+    """Write the final summary statistics to a JSON file."""
+    print(f"[*] Saving summary report to '{report_path}'...")
+
+    total_removed = (
+        stats['cross_class_conflict_skipped'] + stats['redundant_files_skipped']
+    )
+
+    summary_data = {
+        "valid_images_preserved": stats['unique_files_copied'],
+        "images_removed_cross_class": stats['cross_class_conflict_skipped'],
+        "images_removed_redundancy": stats['redundant_files_skipped'],
+        "total_removed": total_removed,
+        "removals_per_class": dict(stats["removed_per_class"]),
+    }
+
+    with open(report_path, "w") as f:
+        json.dump(summary_data, f, indent=4)
+
+
+def main() -> None:
+    """Entry point supporting both Config file and CLI arguments."""
+    parser = argparse.ArgumentParser(description="Dataset Deduplication")
+
+    parser.add_argument(
+        "--config", type=str, default=None, help="Path to params.yaml"
+    )
+
+    parser.add_argument(
+        "--input", type=str, default=None, help="Input directory (raw data)"
+    )
+    parser.add_argument(
+        "--output",
+        type=str,
+        default=None,
+        help="Output directory (deduplicated data)"
+    )
+
+    args = parser.parse_args()
+
+    if args.config:
+        print(f"[*] Loading configuration from {args.config}")
+        with open(args.config) as f:
+            config = yaml.safe_load(f)
+
         try:
-            os.remove(path)
-        except OSError as e:
-            print(f"Error deleting {path}: {e}")
-    print("\nClean-up complete.")
+            input_dir = Path(config["data"]["raw_path"])
+            output_dir = Path(config["data"]["dedup_path"])
+        except KeyError as e:
+            print(f"[-] Error: Key {e} not found in {args.config}")
+            sys.exit(1)
+
+    elif args.input and args.output:
+        print("[*] Using command line arguments")
+        input_dir = Path(args.input)
+        output_dir = Path(args.output)
+
+    else:
+        parser.error("You must provide either --config OR both --input and --output.")
+
+    report_dir = Path("reports")
+    report_dir.mkdir(exist_ok=True)
+
+    csv_report = report_dir / "duplicates_log.csv"
+    summary_report = report_dir / "deduplication_summary.json"
+
+    all_hashes = scan_dataset(input_dir)
+
+    duplicates_only = {h: p for h, p in all_hashes.items() if len(p) > 1}
+    generate_csv_report(duplicates_only, csv_report)
+
+    stats = create_clean_dataset(all_hashes, input_dir, output_dir)
+    generate_summary_report(stats, summary_report)
+
+    print("\n[+] Deduplication complete.")
 
 
 if __name__ == "__main__":
-    run_deduplication("raw")
+    main()
