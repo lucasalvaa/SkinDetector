@@ -45,7 +45,6 @@ def evaluate(
 
     size = len(loader.dataset)
 
-    # <--- CALCOLO PRECISION
     # average='macro' è standard per il multiclasse (media non pesata delle classi)
     precision = precision_score(all_labels, all_preds, average='macro', zero_division=0)
 
@@ -58,10 +57,8 @@ def main() -> None:
     parser.add_argument("--model", type=str, required=True)
     parser.add_argument("--config", type=str, required=True)
 
-    # Coerenza con train.py: usiamo output_dir
     parser.add_argument("--output_dir", type=str, required=True)
 
-    # Opzionale: Permette di caricare un modello da un percorso diverso dall'output
     parser.add_argument("--model_path", type=str, default=None)
 
     args = parser.parse_args()
@@ -81,18 +78,16 @@ def main() -> None:
 
     model = get_model(args.model, len(classes))
 
-    # Logica di caricamento: Se c'è un path specifico usa quello, altrimenti output_dir
     weights_path = Path(args.model_path) if args.model_path else out_dir / "model.pth"
     print(f"[*] Loading weights from: {weights_path}")
 
-    model.load_state_dict(torch.load(weights_path, map_location=DEVICE, weights_only=True))
+    model.load_state_dict(torch.load(weights_path, map_location=DEVICE,
+                                     weights_only=True))
 
-    # <--- NUOVO UNPACKING
     t1, t3, prec, labels, preds = evaluate(model, test_loader)
 
     # Save Metrics
     with open(out_dir / "metrics.json", "w") as f:
-        # <--- SALVATAGGIO PRECISION
         json.dump({
             "top1": t1 * 100,
             "top3": t3 * 100,
