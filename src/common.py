@@ -1,9 +1,11 @@
-"""Common utilities for the P1 pipeline, including data loading and model setup."""
+"""Common utilities."""
 
 from pathlib import Path
 
 import torch
+import torch.optim as optim
 from torch import nn
+from torch.amp import GradScaler, autocast
 from torch.utils.data import DataLoader
 from torchvision import datasets, models, transforms
 
@@ -37,7 +39,7 @@ def get_dataloader(
         dataset,
         batch_size=batch_size,
         shuffle=("train" in str(data_path)),
-        num_workers=4,  # Consiglio: accelera il caricamento dati
+        num_workers=4,  # Accelera il caricamento dati
         pin_memory=True,  # Accelera il trasferimento dati alla GPU
     )
 
@@ -65,3 +67,64 @@ def get_model(model_name: str, num_classes: int) -> nn.Module:
         model.classifier[2] = nn.Linear(model.classifier[2].in_features, num_classes)
 
     return model.to(DEVICE)
+
+def validate(model: nn.Module, loader: DataLoader, criterion: nn.Module) -> float:
+    """Calculate average loss on the validation set.
+
+    Args:
+        model: The neural network model.
+        loader: DataLoader for the validation set.
+        criterion: Loss function (e.g., CrossEntropyLoss or LDAMLoss).
+
+    Returns:
+        The average loss over the entire dataset.
+
+    """
+    model.eval()
+    running_loss = 0.0
+    with torch.no_grad():
+        for images, targets in loader:
+            images, targets = images.to(DEVICE), targets.to(DEVICE)
+            outputs = model(images)
+            loss = criterion(outputs, targets)
+            running_loss += loss.item() * images.size(0)
+    return running_loss / len(loader.dataset)
+
+def train_epoch(
+    model: nn.Module,
+    loader: DataLoader,
+    criterion: nn.Module,
+    optimizer: optim.Optimizer,
+    scaler: GradScaler,
+) -> float:
+    """Run one training epoch with AMP.
+
+    Args:
+        model: The neural network model.
+        loader: DataLoader for the training set.
+        criterion: Loss function.
+        optimizer: Optimizer.
+        scaler: GradScaler for AMP.
+
+    Returns:
+        Average training loss.
+
+    """
+    model.train()
+    running_loss = 0.0
+
+    for images, targets in loader:
+        images, targets = images.to(DEVICE), targets.to(DEVICE)
+        optimizer.zero_grad()
+
+        with autocast(device_type=DEVICE.type):
+            outputs = model(images)
+            loss = criterion(outputs, targets)
+
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update()
+
+        running_loss += loss.item() * images.size(0)
+
+    return running_loss / len(loader.dataset)
