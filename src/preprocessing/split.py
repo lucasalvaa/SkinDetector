@@ -5,7 +5,7 @@ from typing import List, Tuple
 from sklearn.model_selection import train_test_split
 
 # Constants
-RAW_DATA_DIR = Path("data/raw")
+INPUT_DIR = Path("data/dedup")
 OUTPUT_DIR = Path("data/split")
 SEED = 42
 TRAIN_RATIO = 0.70
@@ -114,14 +114,14 @@ def process_class(class_path: Path) -> None:
 
 def main() -> None:
     """Execute the dataset splitting pipeline."""
-    if not RAW_DATA_DIR.exists():
-        print(f"Error: Directory {RAW_DATA_DIR} does not exist.")
+    if not INPUT_DIR.exists():
+        print(f"Error: Directory {INPUT_DIR} does not exist.")
         return
 
     if OUTPUT_DIR.exists():
         shutil.rmtree(OUTPUT_DIR)
 
-    for item in RAW_DATA_DIR.iterdir():
+    for item in INPUT_DIR.iterdir():
         if item.is_dir():
             process_class(item)
 

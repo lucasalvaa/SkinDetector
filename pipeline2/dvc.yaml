@@ -1,23 +1,11 @@
 stages:
-  balancing:
-    wdir: ..
-    cmd: python -m src.preprocessing.balance --config pipeline2/params.yaml
-    deps:
-      - src/preprocessing/balance.py
-      - data/split
-    params:
-      - pipeline2/params.yaml:
-        - data
-    outs:
-      - data_balanced
-
-  train:
+  stage-1:
     foreach: [ effnet_s, effnet_m, convnext ]
     do:
       wdir: ..
-      cmd: python -m src.train --model ${item} --config pipeline2/params.yaml --output_dir pipeline2/${item}
+      cmd: python -m src.train --model ${item} --config pipeline2/params.yaml --output_dir pipeline2/${item} --tsft true
       deps:
-        - data_balanced
+        - data/split/train
         - data/split/val
         - src/train.py
         - src/common.py
@@ -30,41 +18,16 @@ stages:
         - pipeline2/${item}/model.pth
         - pipeline2/${item}/loss.json
 
-  evaluate:
-      foreach: [ effnet_s, effnet_m, convnext ]
-      do:
-        wdir: ..
-        cmd: python -m src.evaluate --model ${item} --config pipeline2/params.yaml --output_dir pipeline2/${item}
-        deps:
-          - data/split/test
-          - src/evaluate.py
-          - src/common.py
-          - pipeline2/${item}/model.pth
-        params:
-          - pipeline2/params.yaml:
-            - base
-            - data
-            - evaluate
-        metrics:
-          - pipeline2/${item}/metrics.json:
-              cache: false
-        plots:
-          - pipeline2/${item}/cm_data.json:
-              template: confusion
-              x: actual
-              y: predicted
-              title: "Pipeline 2 - Balance CM - ${item}"
-              cache: false
-
-  finetuning:
+  stage-2: # fine-tuning
     foreach: [ effnet_s, effnet_m, convnext ]
     do:
       wdir: ..
       cmd: python -m src.finetune --model ${item} --config pipeline2/params.yaml --output_dir pipeline2/${item}/finetuned
       deps:
+        - data/split/train
+        - data/split/val
         - src/finetune.py
         - src/common.py
-        - data/split/train
         - pipeline2/${item}/model.pth
       params:
         - pipeline2/params.yaml:
@@ -76,7 +39,7 @@ stages:
         - pipeline2/${item}/finetuned/loss.json
 
 
-  ft-evaluate:
+  evaluate:
     foreach: [ effnet_s, effnet_m, convnext ]
     do:
       wdir: ..
@@ -99,21 +62,11 @@ stages:
             template: confusion
             x: actual
             y: predicted
-            title: "Pipeline 2 - Balance + Finetune CM - ${item}"
+            title: "Pipeline 2 - Two-Stage Fine-Tuning CM - ${item}"
             cache: false
 
 
 plots:
-    - Training_Loss_Comparison:
-        template: linear
-        x: epoch
-        y:
-          # Qui confrontiamo le performance di addestramento tra i modelli
-          effnet_s/loss.json: train_loss
-          effnet_m/loss.json: train_loss
-          convnext/loss.json: train_loss
-        title: "Pipeline 2 - Comparison: Training Loss per Model"
-
     - effnet_s_curves:
         template: linear
         x: epoch
