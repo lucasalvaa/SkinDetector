@@ -14,7 +14,7 @@ from src.common import DEVICE, get_dataloader, get_model
 
 
 def evaluate(
-        model: torch.nn.Module, loader: DataLoader
+    model: torch.nn.Module, loader: DataLoader
 ) -> Tuple[float, float, float, List[int], List[int]]:
     """Evaluate model and return metrics and predictions.
 
@@ -46,7 +46,7 @@ def evaluate(
     size = len(loader.dataset)
 
     # average='macro' è standard per il multiclasse (media non pesata delle classi)
-    precision = precision_score(all_labels, all_preds, average='macro', zero_division=0)
+    precision = precision_score(all_labels, all_preds, average="macro", zero_division=0)
 
     return top1 / size, top3 / size, precision, all_labels, all_preds
 
@@ -56,9 +56,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str, required=True)
     parser.add_argument("--config", type=str, required=True)
-
     parser.add_argument("--output_dir", type=str, required=True)
-
     parser.add_argument("--model_path", type=str, default=None)
 
     args = parser.parse_args()
@@ -81,18 +79,17 @@ def main() -> None:
     weights_path = Path(args.model_path) if args.model_path else out_dir / "model.pth"
     print(f"[*] Loading weights from: {weights_path}")
 
-    model.load_state_dict(torch.load(weights_path, map_location=DEVICE,
-                                     weights_only=True))
+    model.load_state_dict(
+        torch.load(weights_path, map_location=DEVICE, weights_only=True)
+    )
 
     t1, t3, prec, labels, preds = evaluate(model, test_loader)
 
     # Save Metrics
     with open(out_dir / "metrics.json", "w") as f:
-        json.dump({
-            "top1": t1 * 100,
-            "top3": t3 * 100,
-            "precision": prec * 100
-        }, f, indent=4)
+        json.dump(
+            {"top1": t1 * 100, "top3": t3 * 100, "precision": prec * 100}, f, indent=4
+        )
 
     import csv
 
@@ -103,7 +100,7 @@ def main() -> None:
 
     output_path = out_dir / "cm_data.csv"
 
-    # Scrittura del file CSV
+    # CSV file for confusion matrix
     with open(output_path, "w", newline="", encoding="utf-8") as f:
         fieldnames = ["actual", "predicted"]
         writer = csv.DictWriter(f, fieldnames=fieldnames)

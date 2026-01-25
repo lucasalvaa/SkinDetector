@@ -41,6 +41,7 @@ class LDAMLoss(nn.Module):
         output = torch.where(index, x_m, x)
         return functional.cross_entropy(self.s * output, target)
 
+
 def main() -> None:
     """Entry point for training."""
     parser = argparse.ArgumentParser()

@@ -27,7 +27,6 @@ def main() -> None:
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-
     t_loader = get_dataloader(
         data_path=Path(config["finetuning"]["data_path"]),
         batch_size=config["finetuning"]["batch_size"],
@@ -63,9 +62,7 @@ def main() -> None:
         history.append({"epoch": epoch + 1, "train_loss": t_loss, "val_loss": v_loss})
 
         print(
-            f"Epoch {epoch + 1}/{epochs} | "
-            f"T-Loss: {t_loss:.4f} | "
-            f"V-Loss: {v_loss:.4f}"
+            f"Epoch {epoch + 1}/{epochs} | T-Loss: {t_loss:.4f} | V-Loss: {v_loss:.4f}"
         )
     print(f"Model {args.model} fine-tuned successfully!")
 

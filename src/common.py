@@ -68,6 +68,7 @@ def get_model(model_name: str, num_classes: int) -> nn.Module:
 
     return model.to(DEVICE)
 
+
 def validate(model: nn.Module, loader: DataLoader, criterion: nn.Module) -> float:
     """Calculate average loss on the validation set.
 
@@ -89,6 +90,7 @@ def validate(model: nn.Module, loader: DataLoader, criterion: nn.Module) -> floa
             loss = criterion(outputs, targets)
             running_loss += loss.item() * images.size(0)
     return running_loss / len(loader.dataset)
+
 
 def train_epoch(
     model: nn.Module,
