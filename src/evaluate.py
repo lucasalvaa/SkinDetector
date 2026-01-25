@@ -77,13 +77,22 @@ def main() -> None:
     with open(out_dir / "metrics.json", "w") as f:
         json.dump({"top1": t1 * 100, "top3": t3 * 100}, f, indent=4)
 
+    import csv
+
     cm_data = [
         {"actual": classes[label], "predicted": classes[pred]}
         for label, pred in zip(labels, preds, strict=True)
     ]
 
-    with open(out_dir / "cm_data.json", "w") as f:
-        json.dump(cm_data, f, indent=4)
+    output_path = out_dir / "cm_data.csv"
+
+    # Scrittura del file CSV
+    with open(output_path, "w", newline="", encoding="utf-8") as f:
+        fieldnames = ["actual", "predicted"]
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+
+        writer.writeheader()
+        writer.writerows(cm_data)
 
 
 if __name__ == "__main__":
