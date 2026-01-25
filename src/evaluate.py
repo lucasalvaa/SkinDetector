@@ -7,14 +7,15 @@ from typing import List, Tuple
 
 import torch
 import yaml
+from sklearn.metrics import precision_score
 from torch.utils.data import DataLoader
 
 from src.common import DEVICE, get_dataloader, get_model
 
 
 def evaluate(
-    model: torch.nn.Module, loader: DataLoader
-) -> Tuple[float, float, List[int], List[int]]:
+        model: torch.nn.Module, loader: DataLoader
+) -> Tuple[float, float, float, List[int], List[int]]:
     """Evaluate model and return metrics and predictions.
 
     Args:
@@ -22,7 +23,7 @@ def evaluate(
         loader: DataLoader for the test set.
 
     Returns:
-        A tuple with (top1_acc, top3_acc, true_labels, predictions).
+        A tuple with (top1_acc, top3_acc, precision, true_labels, predictions).
 
     """
     model.eval()
@@ -43,7 +44,11 @@ def evaluate(
             top3 += correct[:, :3].any(dim=1).sum().item()
 
     size = len(loader.dataset)
-    return top1 / size, top3 / size, all_labels, all_preds
+
+    # average='macro' è standard per il multiclasse (media non pesata delle classi)
+    precision = precision_score(all_labels, all_preds, average='macro', zero_division=0)
+
+    return top1 / size, top3 / size, precision, all_labels, all_preds
 
 
 def main() -> None:
@@ -51,7 +56,10 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str, required=True)
     parser.add_argument("--config", type=str, required=True)
+
     parser.add_argument("--output_dir", type=str, required=True)
+
+    parser.add_argument("--model_path", type=str, default=None)
 
     args = parser.parse_args()
 
@@ -69,13 +77,22 @@ def main() -> None:
     classes = test_loader.dataset.classes
 
     model = get_model(args.model, len(classes))
-    model.load_state_dict(torch.load(out_dir / "model.pth", weights_only=True))
 
-    t1, t3, labels, preds = evaluate(model, test_loader)
+    weights_path = Path(args.model_path) if args.model_path else out_dir / "model.pth"
+    print(f"[*] Loading weights from: {weights_path}")
+
+    model.load_state_dict(torch.load(weights_path, map_location=DEVICE,
+                                     weights_only=True))
+
+    t1, t3, prec, labels, preds = evaluate(model, test_loader)
 
     # Save Metrics
     with open(out_dir / "metrics.json", "w") as f:
-        json.dump({"top1": t1 * 100, "top3": t3 * 100}, f, indent=4)
+        json.dump({
+            "top1": t1 * 100,
+            "top3": t3 * 100,
+            "precision": prec * 100
+        }, f, indent=4)
 
     import csv
 
