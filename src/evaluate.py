@@ -53,18 +53,18 @@ def evaluate(
 
 def main() -> None:
     """Run test evaluation and save artifacts."""
+    choices = ["baseline", "pipeline1", "pipeline2", "pipeline3"]
     parser = argparse.ArgumentParser()
+    parser.add_argument("--pipeline", choices=choices, type=str, required=True)
     parser.add_argument("--model", type=str, required=True)
-    parser.add_argument("--config", type=str, required=True)
-    parser.add_argument("--output_dir", type=str, required=True)
     parser.add_argument("--model_path", type=str, default=None)
-
     args = parser.parse_args()
 
-    with open(args.config) as conf_file:
-        config = yaml.safe_load(conf_file)
+    params_path = Path(args.pipeline) / "params.yaml"
+    with open(params_path) as f:
+        config = yaml.safe_load(f)
 
-    out_dir = Path(args.output_dir)
+    out_dir = Path(args.pipeline) / Path(args.model)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     test_loader = get_dataloader(

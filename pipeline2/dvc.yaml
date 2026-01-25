@@ -3,7 +3,7 @@ stages:
     foreach: [ effnet_s, effnet_m, convnext ]
     do:
       wdir: ..
-      cmd: python -m src.train --model ${item} --config pipeline2/params.yaml --output_dir pipeline2/${item} --tsft true
+      cmd: python -m src.train --pipeline pipeline2 --model ${item} --tsft true
       deps:
         - data/split/train
         - data/split/val
@@ -21,7 +21,7 @@ stages:
     foreach: [ effnet_s, effnet_m, convnext ]
     do:
       wdir: ..
-      cmd: python -m src.finetune --model ${item} --config pipeline2/params.yaml --output_dir pipeline2/${item}/finetuned
+      cmd: python -m src.finetune --pipeline pipeline2 --model ${item}
       deps:
         - data/split/train
         - data/split/val
@@ -42,7 +42,7 @@ stages:
     foreach: [ effnet_s, effnet_m, convnext ]
     do:
       wdir: ..
-      cmd: python -m src.evaluate --model ${item} --config pipeline2/params.yaml --output_dir pipeline2/${item}/finetuned
+      cmd: python -m src.evaluate --pipeline pipeline2 --model ${item}
       deps:
         - data/split/test
         - src/evaluate.py

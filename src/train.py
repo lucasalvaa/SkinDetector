@@ -11,6 +11,7 @@ import yaml
 from torch.amp import GradScaler
 
 from src.common import DEVICE, get_dataloader, get_model, train_epoch, validate
+from src.early_stopping import EarlyStopping
 
 
 class LDAMLoss(nn.Module):
@@ -44,17 +45,18 @@ class LDAMLoss(nn.Module):
 
 def main() -> None:
     """Entry point for training."""
+    choices = ["baseline", "pipeline1", "pipeline2", "pipeline3"]
     parser = argparse.ArgumentParser()
+    parser.add_argument("--pipeline", choices=choices, type=str, required=True)
     parser.add_argument("--model", type=str, required=True)
-    parser.add_argument("--config", type=str, required=True)
-    parser.add_argument("--output_dir", type=str, required=True)
     parser.add_argument("--tsft", type=bool, default=False)
     args = parser.parse_args()
 
-    with open(args.config) as f:
+    params_path = Path(args.pipeline) / "params.yaml"
+    with open(params_path) as f:
         config = yaml.safe_load(f)
 
-    out_dir = Path(args.output_dir)
+    out_dir = Path(args.pipeline) / Path(args.model)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     tr_loader = get_dataloader(
@@ -70,6 +72,10 @@ def main() -> None:
     )
 
     model = get_model(args.model, len(tr_loader.dataset.classes)).to(DEVICE)
+    best_model_path = out_dir / "model.pth"
+    early_stopper = EarlyStopping(
+        alpha=config["train"].get("alpha", 5.0), path=str(best_model_path)
+    )
 
     # Two-Stages Fine-Tuning
     if args.tsft:
@@ -112,10 +118,22 @@ def main() -> None:
         print(
             f"Epoch {epoch + 1}/{epochs} | T-Loss: {t_loss:.4f} | V-Loss: {v_loss:.4f}"
         )
+
+        early_stopper(v_loss, epoch + 1, model)
+        if early_stopper.stop:
+            print(
+                f"Stopping at epoch {epoch + 1}. "
+                f"Best model was at epoch {early_stopper.best_epoch}"
+            )
+            break
+
     print(f"Model {args.model} trained successfully!")
 
     # Saving the model
-    torch.save(model.state_dict(), out_dir / "model.pth")
+    if best_model_path.exists():
+        model.load_state_dict(torch.load(best_model_path))
+    else:
+        torch.save(model.state_dict(), out_dir / "model.pth")
 
     # Saving training and validation loss in loss.json file
     if not args.tsft:

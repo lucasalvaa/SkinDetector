@@ -15,7 +15,7 @@ stages:
     foreach: [ effnet_s, effnet_m, convnext ]
     do:
       wdir: ..
-      cmd: python -m src.train --model ${item} --config pipeline1/params.yaml --output_dir pipeline1/${item}
+      cmd: python -m src.train --pipeline pipeline1 --model ${item}
       deps:
         - data_augmented/train
         - data_augmented/val
@@ -34,7 +34,7 @@ stages:
     foreach: [ effnet_s, effnet_m, convnext ]
     do:
       wdir: ..
-      cmd: python -m src.evaluate --model ${item} --config pipeline1/params.yaml --output_dir pipeline1/${item}
+      cmd: python -m src.evaluate --pipeline pipeline1 --model ${item}
       deps:
         - data_augmented/test
         - src/evaluate.py

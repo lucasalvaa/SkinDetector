@@ -107,14 +107,19 @@ def main() -> None:
     """Run data augmentation."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, required=True)
+    parser.add_argument("--force", type=bool, default=False)
     args = parser.parse_args()
 
     with open(args.config) as conf_file:
         config = yaml.safe_load(conf_file)
 
-    process_dataset(
-        Path(config["data"]["inputset_path"]), Path(config["data"]["augmentedset_path"])
-    )
+    input_dir = Path(config["data"]["inputset_path"])
+    output_dir = Path(config["data"]["augmentedset_path"])
+
+    if output_dir.exists() and not args.force:
+        return
+
+    process_dataset(input_dir, output_dir)
 
 
 if __name__ == "__main__":
