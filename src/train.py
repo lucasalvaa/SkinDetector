@@ -19,7 +19,7 @@ class LDAMLoss(nn.Module):
     def __init__(
         self, cls_num_list: list[int], max_m: float = 0.5, s: float = 30.0
     ) -> None:
-        """Initializer."""
+        """Initialize LDAMLoss."""
         super().__init__()
         m_list = 1.0 / torch.sqrt(
             torch.sqrt(torch.tensor(cls_num_list, dtype=torch.float))
