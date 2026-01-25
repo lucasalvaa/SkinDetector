@@ -40,7 +40,8 @@ def main() -> None:
     # Model initialization loading first stage's weights
     model = get_model(args.model, len(t_loader.dataset.classes))
     weights_path = out_dir.parent / "model.pth"
-    model.load_state_dict(torch.load(weights_path, map_location=DEVICE)).to(DEVICE)
+    model.load_state_dict(torch.load(weights_path, map_location=DEVICE))
+    model.to(DEVICE)
 
     # Unfreeze layers
     for param in model.parameters():

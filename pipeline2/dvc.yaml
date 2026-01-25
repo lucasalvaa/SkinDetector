@@ -16,7 +16,6 @@ stages:
           - train
       outs:
         - pipeline2/${item}/model.pth
-        - pipeline2/${item}/loss.json
 
   stage-2: # fine-tuning
     foreach: [ effnet_s, effnet_m, convnext ]
@@ -58,7 +57,7 @@ stages:
         - pipeline2/${item}/finetuned/metrics.json:
             cache: false
       plots:
-        - pipeline2/${item}/finetuned/cm_data.json:
+        - pipeline2/${item}/finetuned/cm_data.csv:
             template: confusion
             x: actual
             y: predicted
