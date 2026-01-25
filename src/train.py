@@ -19,6 +19,7 @@ class LDAMLoss(nn.Module):
     def __init__(
         self, cls_num_list: list[int], max_m: float = 0.5, s: float = 30.0
     ) -> None:
+        """Initializer."""
         super().__init__()
         m_list = 1.0 / torch.sqrt(
             torch.sqrt(torch.tensor(cls_num_list, dtype=torch.float))
@@ -28,6 +29,7 @@ class LDAMLoss(nn.Module):
         self.s = s
 
     def forward(self, x: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        """Apply LDAM margin logic to the logits."""
         index = torch.zeros_like(x, dtype=torch.uint8)
         index.scatter_(1, target.data.view(-1, 1), 1)
 
@@ -40,12 +42,12 @@ class LDAMLoss(nn.Module):
         return functional.cross_entropy(self.s * output, target)
 
 def main() -> None:
-    """Entry point for training with optional TSFT logic and validation."""
+    """Entry point for training."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str, required=True)
     parser.add_argument("--config", type=str, required=True)
     parser.add_argument("--output_dir", type=str, required=True)
-    parser.add_argument("--tsft", type=bool)
+    parser.add_argument("--tsft", type=bool, default=False)
     args = parser.parse_args()
 
     with open(args.config) as f:
