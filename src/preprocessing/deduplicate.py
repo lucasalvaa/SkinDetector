@@ -30,7 +30,7 @@ def scan_dataset(root_dir: Path) -> dict[str, list[Path]]:
         sys.exit(1)
 
     categories = [d for d in root_dir.iterdir() if d.is_dir()]
-    valid_extensions = {'.jpg', '.jpeg', '.png', '.bmp'}
+    valid_extensions = {".jpg", ".jpeg", ".png", ".bmp"}
 
     print(f"[*] Scanning directories in '{root_dir}'...")
 
@@ -43,9 +43,7 @@ def scan_dataset(root_dir: Path) -> dict[str, list[Path]]:
     return hashes
 
 
-def generate_csv_report(
-        duplicates: dict[str, list[Path]], report_path: Path
-) -> None:
+def generate_csv_report(duplicates: dict[str, list[Path]], report_path: Path) -> None:
     """Generate a CSV report listing all duplicates found."""
     print(f"[*] Generating detailed CSV report at '{report_path}'...")
 
@@ -68,7 +66,7 @@ def generate_csv_report(
 
 
 def create_clean_dataset(
-        all_hashes: dict[str, list[Path]], src_root: Path, dest_root: Path
+    all_hashes: dict[str, list[Path]], src_root: Path, dest_root: Path
 ) -> dict:
     """Copy valid files to a new directory."""
     if dest_root.exists():
@@ -77,6 +75,7 @@ def create_clean_dataset(
 
     stats = {
         "unique_files_copied": 0,
+        "redundant_groups": 0,
         "redundant_files_skipped": 0,
         "cross_class_conflict_skipped": 0,
         "removed_per_class": defaultdict(int),
@@ -97,6 +96,7 @@ def create_clean_dataset(
         # Case 2: Same-class duplicates -> COPY ONE
         if len(paths) > 1:
             num_redundant = len(paths) - 1
+            stats["redundant_groups"] += 1
             stats["redundant_files_skipped"] += num_redundant
             stats["removed_per_class"][paths[0].parent.name] += num_redundant
             paths_to_copy = [paths[0]]
@@ -121,13 +121,14 @@ def generate_summary_report(stats: dict, report_path: Path) -> None:
     print(f"[*] Saving summary report to '{report_path}'...")
 
     total_removed = (
-        stats['cross_class_conflict_skipped'] + stats['redundant_files_skipped']
+        stats["cross_class_conflict_skipped"] + stats["redundant_files_skipped"]
     )
 
     summary_data = {
-        "valid_images_preserved": stats['unique_files_copied'],
-        "images_removed_cross_class": stats['cross_class_conflict_skipped'],
-        "images_removed_redundancy": stats['redundant_files_skipped'],
+        "valid_images_preserved": stats["unique_files_copied"]
+        + stats["redundant_groups"],
+        "images_removed_cross_class": stats["cross_class_conflict_skipped"],
+        "images_removed_redundancy": stats["redundant_files_skipped"],
         "total_removed": total_removed,
         "removals_per_class": dict(stats["removed_per_class"]),
     }
@@ -140,18 +141,13 @@ def main() -> None:
     """Entry point supporting both Config file and CLI arguments."""
     parser = argparse.ArgumentParser(description="Dataset Deduplication")
 
-    parser.add_argument(
-        "--config", type=str, default=None, help="Path to params.yaml"
-    )
+    parser.add_argument("--config", type=str, default=None, help="Path to params.yaml")
 
     parser.add_argument(
         "--input", type=str, default=None, help="Input directory (raw data)"
     )
     parser.add_argument(
-        "--output",
-        type=str,
-        default=None,
-        help="Output directory (deduplicated data)"
+        "--output", type=str, default=None, help="Output directory (deduplicated data)"
     )
 
     args = parser.parse_args()
