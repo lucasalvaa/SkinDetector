@@ -45,7 +45,6 @@ class SkinDetectorEDA:
         print(f"[+] Metadata CSV exported to: {csv_path}")
 
         self._plot_distribution(df_dist)
-        self._plot_dimensions(df_dims)
         self._print_executive_summary(df_dist, df_dims)
 
     def _analyze_distribution(self) -> pd.DataFrame:
@@ -115,39 +114,7 @@ class SkinDetectorEDA:
                 fontweight="bold",
             )
 
-        plt.title("Class Distribution", fontsize=16, pad=20)
-        output = self.report_path / "distribution_detailed.png"
-        plt.savefig(output, dpi=300, bbox_inches="tight")
-        plt.close()
-
-    def _plot_dimensions(self, df: pd.DataFrame) -> None:
-        """Create a jointplot with reference aspect ratio lines."""
-        sns.set_theme(style="white")
-        grid = sns.jointplot(
-            data=df,
-            x="Width",
-            y="Height",
-            hue="Class",
-            kind="scatter",
-            alpha=0.5,
-            palette="magma",
-            height=10,
-        )
-
-        max_dim = max(df["Width"].max(), df["Height"].max())
-        x_ref = np.linspace(0, max_dim, 100)
-        grid.ax_joint.plot(x_ref, x_ref, "r--", alpha=0.6, label="1:1 (Square)")
-        grid.ax_joint.plot(
-            x_ref, x_ref * 0.75, "g--", alpha=0.6, label="4:3 (Landscape)"
-        )
-        grid.ax_joint.plot(
-            x_ref, x_ref * 1.33, "b--", alpha=0.6, label="3:4 (Portrait)"
-        )
-
-        grid.ax_joint.legend(loc="upper left")
-        grid.figure.suptitle("Image Geometry Analysis", y=1.02, fontsize=16)
-
-        output = self.report_path / "dimensions_detailed.png"
+        output = self.report_path / "class_distribution.png"
         plt.savefig(output, dpi=300, bbox_inches="tight")
         plt.close()
 
@@ -161,9 +128,9 @@ class SkinDetectorEDA:
         print("\n" + "=" * 60)
         print("                EXECUTIVE EDA SUMMARY REPORT")
         print("=" * 60)
-        print(f"Total Samples:      {df_dist['Count'].sum()}")
-        print(f"Imbalance Ratio:    {ir:.2f}")
-        print(f"AR Consistency:     {std_ar:.3f} (Std Dev)")
+        print(f"Total Samples:              {df_dist['Count'].sum()}")
+        print(f"Imbalance Ratio:            {ir:.2f}")
+        print(f"Aspect-Ratio Consistency:   {std_ar:.3f} (Std Dev)")
         print("-" * 60)
         print(f"[✓] Reports and CSV saved in: {self.report_path.resolve()}")
         print("=" * 60)
@@ -175,7 +142,7 @@ if __name__ == "__main__":
     project_root = src_dir.parent
 
     raw_data_path = project_root / "data" / "raw"
-    reports_path = src_dir / "reports"
+    reports_path = src_dir.parent / "reports"
 
     if not raw_data_path.exists():
         print(f"[-] Error: Could not find data at {raw_data_path}")
