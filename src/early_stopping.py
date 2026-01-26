@@ -3,7 +3,8 @@ import torch.nn as nn
 
 
 class EarlyStopping:
-    """Implement the Automatic Early Stopping technique (Lutz Prechelt, 1998)
+    """Implement the Automatic Early Stopping technique (Lutz Prechelt, 1998).
+
     In particular, it uses the GL_alpha criterion: the training stops
     when the Generalization Loss is greater than the alpha value.
     """
