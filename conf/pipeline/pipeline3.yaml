@@ -1,0 +1,20 @@
+out_dir: pipeline3/
+
+trainset_path: pipeline3/data/augmented/train
+
+augment:
+  src_dir: data/split
+  dst_dir: pipeline3/data/augmented
+  force: False
+
+train:
+  lr: 0.001
+  epochs: 4
+  batch_size: 16
+
+tsft: true
+
+finetuning:
+  lr: 0.0001
+  epochs: 5
+  batch_size: 16

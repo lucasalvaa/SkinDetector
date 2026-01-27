@@ -1,5 +1,7 @@
 [core]
     remote = origin
     autostage = true
+[hydra]
+    enabled = True
 ['remote "origin"']
     url = https://dagshub.com/lucasalvaa/SkinDetector.dvc

@@ -44,28 +44,23 @@ def get_dataloader(
     )
 
 
-def get_model(model_name: str, num_classes: int) -> nn.Module:
+def get_model(model_name: str, weights: str, layer: int, num_classes: int) -> nn.Module:
     """Initialize the chosen architecture with pre-trained weights.
 
     Args:
         model_name: Identifier for the architecture.
+        weights: Pre-trained weights.
+        layer: Layer for the architecture.
         num_classes: Number of output neurons.
 
     Returns:
         The model moved to the appropriate device.
 
     """
-    if "effnet" in model_name:
-        weights = {
-            "effnet_s": models.EfficientNet_V2_S_Weights.DEFAULT,
-            "effnet_m": models.EfficientNet_V2_M_Weights.DEFAULT,
-        }[model_name]
-        model = getattr(models, f"efficientnet_v2_{model_name[-1]}")(weights=weights)
-        model.classifier[1] = nn.Linear(model.classifier[1].in_features, num_classes)
-    else:  # convnext
-        model = models.convnext_tiny(weights=models.ConvNeXt_Tiny_Weights.DEFAULT)
-        model.classifier[2] = nn.Linear(model.classifier[2].in_features, num_classes)
-
+    model = getattr(models, model_name)(weights=weights)
+    model.classifier[layer] = nn.Linear(
+        model.classifier[layer].in_features, num_classes
+    )
     return model.to(DEVICE)
 
 

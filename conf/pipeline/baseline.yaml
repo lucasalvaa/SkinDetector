@@ -1,0 +1,10 @@
+out_dir: baseline/
+
+trainset_path: data/split/train
+
+train:
+  lr: 0.001
+  epochs: 4
+  batch_size: 16
+
+tsft: false

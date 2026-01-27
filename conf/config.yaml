@@ -1,0 +1,18 @@
+defaults:
+  - pipeline: baseline  # Carica conf/pipeline/baseline.yaml
+  - model: effnet_s     # Carica conf/model/effnet_s.yaml
+  - _self_
+
+base:
+  image_res: 224
+  seed: 42
+
+train:
+  alpha: 5.0 # GL alpha value
+
+evaluate:
+  batch_size: 16
+
+data:
+  valset_path: data/split/val
+  testset_path: data/split/test

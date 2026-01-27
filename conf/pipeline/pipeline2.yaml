@@ -1,0 +1,15 @@
+out_dir: pipeline2/
+
+trainset_path: data/split/train
+
+train:
+  lr: 0.001
+  epochs: 4
+  batch_size: 16
+
+tsft: true
+
+finetuning:
+  lr: 0.0001
+  epochs: 5
+  batch_size: 16
