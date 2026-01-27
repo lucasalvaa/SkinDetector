@@ -3,17 +3,19 @@ stages:
     foreach: [ effnet_s, effnet_m, convnext ]
     do:
       wdir: ..
-      cmd: python -m src.train --pipeline pipeline2 --model ${item} --tsft true
+      cmd: >
+        python -m src.train 
+        pipeline=pipeline2 
+        model=${item}
       deps:
         - data/split/train
         - data/split/val
         - src/train.py
         - src/common.py
       params:
-        - pipeline2/params.yaml:
-          - base
-          - data
-          - train
+        - conf/config.yaml:
+        - conf/pipeline/pipeline2.yaml:
+        - conf/model/${item}.yaml:
       outs:
         - pipeline2/${item}/model.pth
 
@@ -21,7 +23,10 @@ stages:
     foreach: [ effnet_s, effnet_m, convnext ]
     do:
       wdir: ..
-      cmd: python -m src.finetune --pipeline pipeline2 --model ${item}
+      cmd: >
+        python -m src.finetune 
+        pipeline=pipeline2 
+        model=${item}
       deps:
         - data/split/train
         - data/split/val
@@ -29,10 +34,9 @@ stages:
         - src/common.py
         - pipeline2/${item}/model.pth
       params:
-        - pipeline2/params.yaml:
-            - base
-            - data
-            - finetuning
+        - conf/config.yaml:
+        - conf/pipeline/pipeline2.yaml:
+        - conf/model/${item}.yaml:
       outs:
         - pipeline2/${item}/finetuned/model.pth
         - pipeline2/${item}/finetuned/loss.json
@@ -42,17 +46,19 @@ stages:
     foreach: [ effnet_s, effnet_m, convnext ]
     do:
       wdir: ..
-      cmd: python -m src.evaluate --pipeline pipeline2 --model ${item}
+      cmd: >
+        python -m src.evaluate 
+        pipeline=pipeline2 
+        model=${item}
       deps:
         - data/split/test
         - src/evaluate.py
         - src/common.py
         - pipeline2/${item}/finetuned/model.pth
       params:
-        - pipeline2/params.yaml:
-          - base
-          - data
-          - evaluate
+        - conf/config.yaml:
+        - conf/pipeline/pipeline2.yaml:
+        - conf/model/${item}.yaml:
       metrics:
         - pipeline2/${item}/finetuned/metrics.json:
             cache: false

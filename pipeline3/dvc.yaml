@@ -1,31 +1,35 @@
 stages:
-  augmentation:
+  augment:
     wdir: ..
-    cmd: python -m src.preprocessing.augment --config pipeline3/params.yaml
+    cmd: >
+      python -m src.augment
+      pipeline=pipeline3
     deps:
-      - data/split
-      - src/preprocessing/balance.py
+      - data/split/train
+      - src/augment.py
     params:
-      - pipeline3/params.yaml:
-          - data
-    # outs:
-      # - pipeline3/data_augmented
+      - conf/config.yaml:
+      - conf/pipeline/pipeline3.yaml:
+    outs:
+      - pipeline3/data/augmented/train
 
   stage-1:
     foreach: [ effnet_s, effnet_m, convnext ]
     do:
       wdir: ..
-      cmd: python -m src.train --pipeline pipeline3 --model ${item} --tsft true
+      cmd: >
+        python -m src.train 
+        pipeline=pipeline3
+        model=${item}
       deps:
-        - data_augmented/train
+        - pipeline3/data/augmented/train
         - data/split/val
         - src/train.py
         - src/common.py
       params:
-        - pipeline3/params.yaml:
-            - base
-            - data
-            - train
+        - conf/config.yaml:
+        - conf/pipeline/pipeline3.yaml:
+        - conf/model/${item}.yaml:
       outs:
         - pipeline3/${item}/model.pth
 
@@ -33,37 +37,42 @@ stages:
     foreach: [ effnet_s, effnet_m, convnext ]
     do:
       wdir: ..
-      cmd: python -m src.finetune --pipeline pipeline3 --model ${item}
+      cmd: >
+        python -m src.finetune 
+        pipeline=pipeline3 
+        model=${item}
       deps:
-        - pipeline3/data_augmented/train
+        - pipeline3/data/augmented/train
         - data/split/val
         - src/finetune.py
         - src/common.py
         - pipeline3/${item}/model.pth
       params:
-        - pipeline3/params.yaml:
-            - base
-            - data
-            - finetuning
+        - conf/config.yaml:
+        - conf/pipeline/pipeline3.yaml:
+        - conf/model/${item}.yaml:
       outs:
         - pipeline3/${item}/finetuned/model.pth
         - pipeline3/${item}/finetuned/loss.json
+
 
   evaluate:
     foreach: [ effnet_s, effnet_m, convnext ]
     do:
       wdir: ..
-      cmd: python -m src.evaluate --pipeline pipeline3 --model ${item}
+      cmd: >
+        python -m src.evaluate 
+        pipeline=pipeline3 
+        model=${item}
       deps:
         - data/split/test
         - src/evaluate.py
         - src/common.py
         - pipeline3/${item}/finetuned/model.pth
       params:
-        - pipeline3/params.yaml:
-            - base
-            - data
-            - evaluate
+        - conf/config.yaml:
+        - conf/pipeline/pipeline3.yaml:
+        - conf/model/${item}.yaml:
       metrics:
         - pipeline3/${item}/finetuned/metrics.json:
             cache: false
@@ -72,7 +81,7 @@ stages:
             template: confusion
             x: actual
             y: predicted
-            title: "Pipeline 3 - Two-Stage Fine-Tuning CM - ${item}"
+            title: "Pipeline 2 - Two-Stage Fine-Tuning CM - ${item}"
             cache: false
 
 plots:

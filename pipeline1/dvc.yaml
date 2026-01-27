@@ -1,31 +1,35 @@
 stages:
   augment:
     wdir: ..
-    cmd: python -m src.preprocessing.augment --config pipeline1/params.yaml
+    cmd: >
+      python -m src.augment
+      pipeline=pipeline1
     deps:
-      - src/preprocessing/augment.py
-      - data/split
+      - data/split/train
+      - src/augment.py
     params:
-      - pipeline1/params.yaml:
-        - data
+      - conf/config.yaml:
+      - conf/pipeline/pipeline1.yaml:
     outs:
-      - data_augmented
+      - pipeline1/data/augmented/train
 
   train:
     foreach: [ effnet_s, effnet_m, convnext ]
     do:
       wdir: ..
-      cmd: python -m src.train --pipeline pipeline1 --model ${item}
+      cmd: >
+        python -m src.train 
+        pipeline=pipeline1 
+        model=${item}
       deps:
-        - data_augmented/train
-        - data_augmented/val
+        - pipeline1/data/augmented/train
+        - data/split/val
         - src/train.py
         - src/common.py
       params:
-        - pipeline1/params.yaml:
-          - base
-          - data
-          - train
+        - conf/config.yaml:
+        - conf/pipeline/pipeline1.yaml:
+        - conf/model/${item}.yaml:
       outs:
         - pipeline1/${item}/model.pth
         - pipeline1/${item}/loss.json
@@ -34,17 +38,18 @@ stages:
     foreach: [ effnet_s, effnet_m, convnext ]
     do:
       wdir: ..
-      cmd: python -m src.evaluate --pipeline pipeline1 --model ${item}
+      cmd: >
+        python -m src.evaluate 
+        pipeline=pipeline1 
+        model=${item}
       deps:
-        - data_augmented/test
+        - data/split/test
         - src/evaluate.py
         - src/common.py
         - pipeline1/${item}/model.pth
       params:
-        - pipeline1/params.yaml:
-          - base
-          - data
-          - evaluate
+        - conf/config.yaml:
+        - conf/pipeline/pipeline1.yaml:
       metrics:
         - pipeline1/${item}/metrics.json:
             cache: false
@@ -53,7 +58,7 @@ stages:
             template: confusion
             x: actual
             y: predicted
-            title: "Pipeline 1 - Confusion Matrix - ${item}"
+            title: "Pipeline1 - Confusion Matrix - ${item}"
             cache: false
 
 plots:

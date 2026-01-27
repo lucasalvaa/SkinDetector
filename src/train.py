@@ -1,13 +1,13 @@
-import argparse
 import json
 from collections import Counter
 from pathlib import Path
 
+import hydra
 import torch
 import torch.nn as nn
 import torch.nn.functional as functional
 import torch.optim as optim
-import yaml
+from omegaconf import DictConfig
 from torch.amp import GradScaler
 
 from src.common import DEVICE, get_dataloader, get_model, train_epoch, validate
@@ -43,42 +43,41 @@ class LDAMLoss(nn.Module):
         return functional.cross_entropy(self.s * output, target)
 
 
-def main() -> None:
+@hydra.main(version_base=None, config_path="../conf", config_name="config")
+def main(cfg: DictConfig) -> None:
     """Entry point for training."""
-    choices = ["baseline", "pipeline1", "pipeline2", "pipeline3"]
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--pipeline", choices=choices, type=str, required=True)
-    parser.add_argument("--model", type=str, required=True)
-    parser.add_argument("--tsft", type=bool, default=False)
-    args = parser.parse_args()
-
-    params_path = Path(args.pipeline) / "params.yaml"
-    with open(params_path) as f:
-        config = yaml.safe_load(f)
-
-    out_dir = Path(args.pipeline) / Path(args.model)
+    root = Path(hydra.utils.get_original_cwd())  # Project root
+    out_dir = root / cfg.pipeline.out_dir / cfg.model.name
     out_dir.mkdir(parents=True, exist_ok=True)
 
     tr_loader = get_dataloader(
-        image_res=config["base"]["image_res"],
-        data_path=Path(config["data"]["trainset_path"]),
-        batch_size=config["train"]["batch_size"],
+        image_res=cfg.base.image_res,
+        data_path=root / cfg.pipeline.trainset_path,
+        batch_size=cfg.pipeline.train.batch_size,
     )
 
     val_loader = get_dataloader(
-        image_res=config["base"]["image_res"],
-        data_path=Path(config["data"]["valset_path"]),
-        batch_size=config["train"]["batch_size"],
+        image_res=cfg.base.image_res,
+        data_path=root / cfg.data.valset_path,
+        batch_size=cfg.pipeline.train.batch_size,
     )
 
-    model = get_model(args.model, len(tr_loader.dataset.classes)).to(DEVICE)
+    model = get_model(
+        cfg.model.fullname,
+        cfg.model.weights,
+        cfg.model.layer,
+        len(tr_loader.dataset.classes),
+    ).to(DEVICE)
+
     best_model_path = out_dir / "model.pth"
     early_stopper = EarlyStopping(
-        alpha=config["train"].get("alpha", 5.0), path=str(best_model_path)
+        alpha=cfg.train.get("alpha", 5.0), path=str(best_model_path)
     )
 
+    is_tsft = cfg.pipeline.get("tsft", False)
+
     # Two-Stages Fine-Tuning
-    if args.tsft:
+    if is_tsft:
         # Freeze layers
         for param in model.parameters():
             param.requires_grad = False
@@ -101,14 +100,15 @@ def main() -> None:
         criterion = nn.CrossEntropyLoss()
 
     optimizer = optim.Adam(
-        filter(lambda p: p.requires_grad, model.parameters()), lr=config["train"]["lr"]
+        filter(lambda p: p.requires_grad, model.parameters()),
+        cfg.pipeline.train.get("lr", 0.001),
     )
     scaler = GradScaler()
 
     # Model training
     history = []
-    epochs = config["train"]["epochs"]
-    print(f"Training {args.model}...")
+    epochs = cfg.pipeline.train.get("epochs", 4)
+    print(f"Training {cfg.model.name}...")
     for epoch in range(epochs):
         t_loss = train_epoch(model, tr_loader, criterion, optimizer, scaler)
         v_loss = validate(model, val_loader, criterion)
@@ -127,7 +127,7 @@ def main() -> None:
             )
             break
 
-    print(f"Model {args.model} trained successfully!")
+    print(f"Model {cfg.model.name} trained successfully!")
 
     # Saving the model
     if best_model_path.exists():
@@ -136,7 +136,7 @@ def main() -> None:
         torch.save(model.state_dict(), out_dir / "model.pth")
 
     # Saving training and validation loss in loss.json file
-    if not args.tsft:
+    if not is_tsft:
         with open(out_dir / "loss.json", "w") as f:
             json.dump(history, f, indent=4)
 

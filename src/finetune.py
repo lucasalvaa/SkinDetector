@@ -1,53 +1,51 @@
 """Fine-tuning script for the best performing model using balanced data phase 2."""
 
-import argparse
 import json
 from pathlib import Path
 
+import hydra
 import torch
-import yaml
+from omegaconf import DictConfig
 from torch import amp, nn, optim
 
 from src.common import DEVICE, get_dataloader, get_model, train_epoch, validate
 from src.early_stopping import EarlyStopping
 
 
-def main() -> None:
+@hydra.main(version_base=None, config_path="../conf", config_name="config")
+def main(cfg: DictConfig) -> None:
     """Execute the fine-tuning pipeline."""
-    choices = ["baseline", "pipeline1", "pipeline2", "pipeline3"]
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--pipeline", choices=choices, type=str, required=True)
-    parser.add_argument("--model", type=str, required=True)
-    # parser.add_argument("--config", type=str, required=True)
-    # parser.add_argument("--output_dir", type=str, required=True)
-    args = parser.parse_args()
-
-    params_path = Path(args.pipeline) / "params.yaml"
-    with open(params_path) as f:
-        config = yaml.safe_load(f)
-
-    out_dir = Path(args.pipeline / args.model) / "finetuned"
+    root = Path(hydra.utils.get_original_cwd())  # Project root
+    out_dir = root / cfg.pipeline.out_dir / cfg.model.name / "finetuned"
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    t_loader = get_dataloader(
-        data_path=Path(config["finetuning"]["data_path"]),
-        batch_size=config["finetuning"]["batch_size"],
+    tr_loader = get_dataloader(
+        image_res=cfg.base.image_res,
+        data_path=root / cfg.pipeline.trainset_path,
+        batch_size=cfg.pipeline.train.batch_size,
     )
 
-    v_loader = get_dataloader(
-        data_path=Path(config["data"]["valset_path"]),
-        batch_size=config["finetuning"]["batch_size"],
+    val_loader = get_dataloader(
+        image_res=cfg.base.image_res,
+        data_path=root / cfg.data.valset_path,
+        batch_size=cfg.pipeline.train.batch_size,
     )
 
     # Model initialization loading first stage's weights
-    model = get_model(args.model, len(t_loader.dataset.classes))
+    model = get_model(
+        cfg.model.fullname,
+        cfg.model.weights,
+        cfg.model.layer,
+        len(tr_loader.dataset.classes),
+    ).to(DEVICE)
+
     weights_path = out_dir.parent / "model.pth"
     model.load_state_dict(torch.load(weights_path, map_location=DEVICE))
     model.to(DEVICE)
 
     best_model_path = out_dir / "model.pth"
     early_stopper = EarlyStopping(
-        alpha=config["train"].get("alpha", 5.0), path=str(best_model_path)
+        alpha=cfg.train.get("alpha", 5.0), path=str(best_model_path)
     )
 
     # Unfreeze layers
@@ -56,16 +54,19 @@ def main() -> None:
 
     # Fine-tuning setup
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=config["finetuning"]["lr"])
+    optimizer = optim.Adam(
+        model.parameters(),
+        cfg.pipeline.finetuning.get("lr", 0.0001),
+    )
     scaler = amp.GradScaler()
 
     # Model fine-tuning
     history = []
-    epochs = config["finetuning"]["epochs"]
-    print(f"Fine-tuning {args.model}...")
+    epochs = cfg.pipeline.finetuning.get("epochs", 5)
+    print(f"Fine-tuning {cfg.model.name}...")
     for epoch in range(epochs):
-        t_loss = train_epoch(model, t_loader, criterion, optimizer, scaler)
-        v_loss = validate(model, v_loader, criterion)
+        t_loss = train_epoch(model, tr_loader, criterion, optimizer, scaler)
+        v_loss = validate(model, val_loader, criterion)
 
         history.append({"epoch": epoch + 1, "train_loss": t_loss, "val_loss": v_loss})
 
@@ -81,7 +82,7 @@ def main() -> None:
             )
             break
 
-    print(f"Model {args.model} fine-tuned successfully!")
+    print(f"Model {cfg.model.name} fine-tuned successfully!")
 
     # Saving the model
     torch.save(model.state_dict(), out_dir / "model.pth")

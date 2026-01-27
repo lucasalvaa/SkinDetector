@@ -1,12 +1,12 @@
 """Evaluation script for P1: calculates metrics and generates plots."""
 
-import argparse
 import json
 from pathlib import Path
 from typing import List, Tuple
 
+import hydra
 import torch
-import yaml
+from omegaconf import DictConfig
 from sklearn.metrics import precision_score
 from torch.utils.data import DataLoader
 
@@ -51,32 +51,33 @@ def evaluate(
     return top1 / size, top3 / size, precision, all_labels, all_preds
 
 
-def main() -> None:
+@hydra.main(version_base=None, config_path="../conf", config_name="config")
+def main(cfg: DictConfig) -> None:
     """Run test evaluation and save artifacts."""
-    choices = ["baseline", "pipeline1", "pipeline2", "pipeline3"]
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--pipeline", choices=choices, type=str, required=True)
-    parser.add_argument("--model", type=str, required=True)
-    parser.add_argument("--model_path", type=str, default=None)
-    args = parser.parse_args()
-
-    params_path = Path(args.pipeline) / "params.yaml"
-    with open(params_path) as f:
-        config = yaml.safe_load(f)
-
-    out_dir = Path(args.pipeline) / Path(args.model)
+    root = Path(hydra.utils.get_original_cwd())  # Project Root
+    out_dir = root / cfg.pipeline.out_dir / cfg.model.name
+    if cfg.pipeline.tsft:
+        out_dir = out_dir / "finetuned"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     test_loader = get_dataloader(
-        image_res=config["base"]["image_res"],
-        data_path=Path(config["data"]["testset_path"]),
-        batch_size=config["evaluate"]["batch_size"],
+        image_res=cfg.base.image_res,
+        data_path=root / cfg.data.testset_path,
+        batch_size=cfg.evaluate.batch_size,
     )
+
     classes = test_loader.dataset.classes
 
-    model = get_model(args.model, len(classes))
+    model = get_model(
+        cfg.model.fullname,
+        cfg.model.weights,
+        cfg.model.layer,
+        len(test_loader.dataset.classes),
+    ).to(DEVICE)
 
-    weights_path = Path(args.model_path) if args.model_path else out_dir / "model.pth"
+    weights_path = out_dir / "model.pth"
+
+    # weights_path = Path(args.model_path) if args.model_path else out_dir / "model.pth"
     print(f"[*] Loading weights from: {weights_path}")
 
     model.load_state_dict(

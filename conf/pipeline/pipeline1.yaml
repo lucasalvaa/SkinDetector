@@ -1,0 +1,15 @@
+out_dir: pipeline1/
+
+trainset_path: pipeline1/data/augmented/train
+
+augment:
+  src_dir: data/split
+  dst_dir: pipeline1/data/augmented
+  force: False
+
+train:
+  lr: 0.001
+  epochs: 4
+  batch_size: 16
+
+tsft: false
