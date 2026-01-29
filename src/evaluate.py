@@ -86,6 +86,8 @@ def main(cfg: DictConfig) -> None:
 
     t1, t3, prec, labels, preds = evaluate(model, test_loader)
 
+    print(f"Top 1: {t1 * 100}%\nTop 3: {t3 * 100}%\nPrecision: {prec * 100}%")
+
     # Save Metrics
     with open(out_dir / "metrics.json", "w") as f:
         json.dump(
