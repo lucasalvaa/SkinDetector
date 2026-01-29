@@ -1,0 +1,652 @@
+schema: '2.0'
+stages:
+  augment:
+    cmd: "python -m src.augment pipeline=pipeline3\n"
+    deps:
+    - path: data/split/train
+      hash: md5
+      md5: 3722dfc0fe24b6bc63e77927dba07a7b.dir
+      size: 156677811
+      nfiles: 2953
+    - path: src/augment.py
+      hash: md5
+      md5: 90b5bdeff3ee5b53240608f19e5d94ea
+      size: 3568
+    params:
+      conf/config.yaml:
+        base:
+          image_res: 224
+          seed: 42
+        data:
+          valset_path: data/split/val
+          testset_path: data/split/test
+        defaults:
+        - pipeline: baseline
+        - model: effnet_s
+        - _self_
+        evaluate:
+          batch_size: 16
+        train:
+          alpha: 5.0
+      conf/pipeline/pipeline3.yaml:
+        augment:
+          src_dir: data/split
+          dst_dir: pipeline3/data/augmented
+          force: false
+        finetuning:
+          lr: 0.0001
+          epochs: 5
+          batch_size: 16
+        out_dir: pipeline3/
+        train:
+          lr: 0.001
+          epochs: 4
+          batch_size: 16
+        trainset_path: pipeline3/data/augmented/train
+        tsft: true
+    outs:
+    - path: pipeline3/data/augmented/train
+      hash: md5
+      md5: cae551e9b2a632ef48ad17d9fe3e054b.dir
+      size: 1408266712
+      nfiles: 8859
+  stage-1@effnet_s:
+    cmd: "python -m src.train  pipeline=pipeline3 model=effnet_s\n"
+    deps:
+    - path: data/split/val
+      hash: md5
+      md5: aa1ee861ad552d1a00bc7136164398d8.dir
+      size: 33725765
+      nfiles: 634
+    - path: pipeline3/data/augmented/train
+      hash: md5
+      md5: cae551e9b2a632ef48ad17d9fe3e054b.dir
+      size: 1408266712
+      nfiles: 8859
+    - path: src/common.py
+      hash: md5
+      md5: eebdc02be491d1a283c895659a244fdc
+      size: 3543
+    - path: src/train.py
+      hash: md5
+      md5: 5f0c8c5f0f529fc76ad7ca5ecb9a03ec
+      size: 4648
+    params:
+      conf/config.yaml:
+        base:
+          image_res: 224
+          seed: 42
+        data:
+          valset_path: data/split/val
+          testset_path: data/split/test
+        defaults:
+        - pipeline: baseline
+        - model: effnet_s
+        - _self_
+        evaluate:
+          batch_size: 16
+        train:
+          alpha: 5.0
+      conf/model/effnet_s.yaml:
+        fullname: efficientnet_v2_s
+        layer: 1
+        name: effnet_s
+        weights: EfficientNet_V2_S_Weights.DEFAULT
+      conf/pipeline/pipeline3.yaml:
+        augment:
+          src_dir: data/split
+          dst_dir: pipeline3/data/augmented
+          force: false
+        finetuning:
+          lr: 0.0001
+          epochs: 5
+          batch_size: 16
+        out_dir: pipeline3/
+        train:
+          lr: 0.001
+          epochs: 4
+          batch_size: 16
+        trainset_path: pipeline3/data/augmented/train
+        tsft: true
+    outs:
+    - path: pipeline3/effnet_s/model.pth
+      hash: md5
+      md5: 22c1393e14474412998c104bd996cd73
+      size: 81596987
+  stage-2@effnet_s:
+    cmd: "python -m src.finetune  pipeline=pipeline3  model=effnet_s\n"
+    deps:
+    - path: data/split/val
+      hash: md5
+      md5: aa1ee861ad552d1a00bc7136164398d8.dir
+      size: 33725765
+      nfiles: 634
+    - path: pipeline3/data/augmented/train
+      hash: md5
+      md5: cae551e9b2a632ef48ad17d9fe3e054b.dir
+      size: 1408266712
+      nfiles: 8859
+    - path: pipeline3/effnet_s/model.pth
+      hash: md5
+      md5: 22c1393e14474412998c104bd996cd73
+      size: 81596987
+    - path: src/common.py
+      hash: md5
+      md5: eebdc02be491d1a283c895659a244fdc
+      size: 3543
+    - path: src/finetune.py
+      hash: md5
+      md5: 81dde0936643975ed65540f8c8d56fa7
+      size: 2975
+    params:
+      conf/config.yaml:
+        base:
+          image_res: 224
+          seed: 42
+        data:
+          valset_path: data/split/val
+          testset_path: data/split/test
+        defaults:
+        - pipeline: baseline
+        - model: effnet_s
+        - _self_
+        evaluate:
+          batch_size: 16
+        train:
+          alpha: 5.0
+      conf/model/effnet_s.yaml:
+        fullname: efficientnet_v2_s
+        layer: 1
+        name: effnet_s
+        weights: EfficientNet_V2_S_Weights.DEFAULT
+      conf/pipeline/pipeline3.yaml:
+        augment:
+          src_dir: data/split
+          dst_dir: pipeline3/data/augmented
+          force: false
+        finetuning:
+          lr: 0.0001
+          epochs: 5
+          batch_size: 16
+        out_dir: pipeline3/
+        train:
+          lr: 0.001
+          epochs: 4
+          batch_size: 16
+        trainset_path: pipeline3/data/augmented/train
+        tsft: true
+    outs:
+    - path: pipeline3/effnet_s/finetuned/loss.json
+      hash: md5
+      md5: 06a323d8b1ae3e57d1925755d80ad4c1
+      size: 232
+    - path: pipeline3/effnet_s/finetuned/model.pth
+      hash: md5
+      md5: 4ff7f9d8265ff41f074ff09479428a1c
+      size: 81596987
+  evaluate@effnet_s:
+    cmd: "python -m src.evaluate  pipeline=pipeline3  model=effnet_s\n"
+    deps:
+    - path: data/split/test
+      hash: md5
+      md5: d7675a3f7fb90cbdfff2fa7fcaff688f.dir
+      size: 34292589
+      nfiles: 636
+    - path: pipeline3/effnet_s/finetuned/model.pth
+      hash: md5
+      md5: 4ff7f9d8265ff41f074ff09479428a1c
+      size: 81596987
+    - path: src/common.py
+      hash: md5
+      md5: eebdc02be491d1a283c895659a244fdc
+      size: 3543
+    - path: src/evaluate.py
+      hash: md5
+      md5: d5744aafc8efedc89a8d28a5f298a4f7
+      size: 3495
+    params:
+      conf/config.yaml:
+        base:
+          image_res: 224
+          seed: 42
+        data:
+          valset_path: data/split/val
+          testset_path: data/split/test
+        defaults:
+        - pipeline: baseline
+        - model: effnet_s
+        - _self_
+        evaluate:
+          batch_size: 16
+        train:
+          alpha: 5.0
+      conf/model/effnet_s.yaml:
+        fullname: efficientnet_v2_s
+        layer: 1
+        name: effnet_s
+        weights: EfficientNet_V2_S_Weights.DEFAULT
+      conf/pipeline/pipeline3.yaml:
+        augment:
+          src_dir: data/split
+          dst_dir: pipeline3/data/augmented
+          force: false
+        finetuning:
+          lr: 0.0001
+          epochs: 5
+          batch_size: 16
+        out_dir: pipeline3/
+        train:
+          lr: 0.001
+          epochs: 4
+          batch_size: 16
+        trainset_path: pipeline3/data/augmented/train
+        tsft: true
+    outs:
+    - path: pipeline3/effnet_s/finetuned/cm_data.csv
+      hash: md5
+      md5: 5f103b427e989b72d647e491126f058b
+      size: 15131
+    - path: pipeline3/effnet_s/finetuned/metrics.json
+      hash: md5
+      md5: a4191fb2b2261abeba8e9a5ab782a8f3
+      size: 88
+  stage-1@effnet_m:
+    cmd: "python -m src.train  pipeline=pipeline3 model=effnet_m\n"
+    deps:
+    - path: data/split/val
+      hash: md5
+      md5: aa1ee861ad552d1a00bc7136164398d8.dir
+      size: 33725765
+      nfiles: 634
+    - path: pipeline3/data/augmented/train
+      hash: md5
+      md5: cae551e9b2a632ef48ad17d9fe3e054b.dir
+      size: 1408266712
+      nfiles: 8859
+    - path: src/common.py
+      hash: md5
+      md5: eebdc02be491d1a283c895659a244fdc
+      size: 3543
+    - path: src/train.py
+      hash: md5
+      md5: 5f0c8c5f0f529fc76ad7ca5ecb9a03ec
+      size: 4648
+    params:
+      conf/config.yaml:
+        base:
+          image_res: 224
+          seed: 42
+        data:
+          valset_path: data/split/val
+          testset_path: data/split/test
+        defaults:
+        - pipeline: baseline
+        - model: effnet_s
+        - _self_
+        evaluate:
+          batch_size: 16
+        train:
+          alpha: 5.0
+      conf/model/effnet_m.yaml:
+        fullname: efficientnet_v2_m
+        layer: 1
+        name: effnet_m
+        weights: EfficientNet_V2_M_Weights.DEFAULT
+      conf/pipeline/pipeline3.yaml:
+        augment:
+          src_dir: data/split
+          dst_dir: pipeline3/data/augmented
+          force: false
+        finetuning:
+          lr: 0.0001
+          epochs: 5
+          batch_size: 16
+        out_dir: pipeline3/
+        train:
+          lr: 0.001
+          epochs: 4
+          batch_size: 16
+        trainset_path: pipeline3/data/augmented/train
+        tsft: true
+    outs:
+    - path: pipeline3/effnet_m/model.pth
+      hash: md5
+      md5: f7664fbfd7bc1e6b65d150771f38569f
+      size: 212984427
+  stage-2@effnet_m:
+    cmd: "python -m src.finetune  pipeline=pipeline3  model=effnet_m\n"
+    deps:
+    - path: data/split/val
+      hash: md5
+      md5: aa1ee861ad552d1a00bc7136164398d8.dir
+      size: 33725765
+      nfiles: 634
+    - path: pipeline3/data/augmented/train
+      hash: md5
+      md5: cae551e9b2a632ef48ad17d9fe3e054b.dir
+      size: 1408266712
+      nfiles: 8859
+    - path: pipeline3/effnet_m/model.pth
+      hash: md5
+      md5: f7664fbfd7bc1e6b65d150771f38569f
+      size: 212984427
+    - path: src/common.py
+      hash: md5
+      md5: eebdc02be491d1a283c895659a244fdc
+      size: 3543
+    - path: src/finetune.py
+      hash: md5
+      md5: 81dde0936643975ed65540f8c8d56fa7
+      size: 2975
+    params:
+      conf/config.yaml:
+        base:
+          image_res: 224
+          seed: 42
+        data:
+          valset_path: data/split/val
+          testset_path: data/split/test
+        defaults:
+        - pipeline: baseline
+        - model: effnet_s
+        - _self_
+        evaluate:
+          batch_size: 16
+        train:
+          alpha: 5.0
+      conf/model/effnet_m.yaml:
+        fullname: efficientnet_v2_m
+        layer: 1
+        name: effnet_m
+        weights: EfficientNet_V2_M_Weights.DEFAULT
+      conf/pipeline/pipeline3.yaml:
+        augment:
+          src_dir: data/split
+          dst_dir: pipeline3/data/augmented
+          force: false
+        finetuning:
+          lr: 0.0001
+          epochs: 5
+          batch_size: 16
+        out_dir: pipeline3/
+        train:
+          lr: 0.001
+          epochs: 4
+          batch_size: 16
+        trainset_path: pipeline3/data/augmented/train
+        tsft: true
+    outs:
+    - path: pipeline3/effnet_m/finetuned/loss.json
+      hash: md5
+      md5: 0b54891b82ae4e222363a9e21a07c0ec
+      size: 233
+    - path: pipeline3/effnet_m/finetuned/model.pth
+      hash: md5
+      md5: 79db5cdbc03bad471f2db637a3c0efe8
+      size: 212984427
+  stage-1@convnext:
+    cmd: "python -m src.train  pipeline=pipeline3 model=convnext\n"
+    deps:
+    - path: data/split/val
+      hash: md5
+      md5: aa1ee861ad552d1a00bc7136164398d8.dir
+      size: 33725765
+      nfiles: 634
+    - path: pipeline3/data/augmented/train
+      hash: md5
+      md5: cae551e9b2a632ef48ad17d9fe3e054b.dir
+      size: 1408266712
+      nfiles: 8859
+    - path: src/common.py
+      hash: md5
+      md5: eebdc02be491d1a283c895659a244fdc
+      size: 3543
+    - path: src/train.py
+      hash: md5
+      md5: 5f0c8c5f0f529fc76ad7ca5ecb9a03ec
+      size: 4648
+    params:
+      conf/config.yaml:
+        base:
+          image_res: 224
+          seed: 42
+        data:
+          valset_path: data/split/val
+          testset_path: data/split/test
+        defaults:
+        - pipeline: baseline
+        - model: effnet_s
+        - _self_
+        evaluate:
+          batch_size: 16
+        train:
+          alpha: 5.0
+      conf/model/convnext.yaml:
+        fullname: convnext_base
+        layer: 2
+        name: convnext
+        weights: ConvNeXt_Base_Weights.DEFAULT
+      conf/pipeline/pipeline3.yaml:
+        augment:
+          src_dir: data/split
+          dst_dir: pipeline3/data/augmented
+          force: false
+        finetuning:
+          lr: 0.0001
+          epochs: 5
+          batch_size: 16
+        out_dir: pipeline3/
+        train:
+          lr: 0.001
+          epochs: 4
+          batch_size: 16
+        trainset_path: pipeline3/data/augmented/train
+        tsft: true
+    outs:
+    - path: pipeline3/convnext/model.pth
+      hash: md5
+      md5: fdacf24afd286402c1cad273196120b7
+      size: 350394259
+  stage-2@convnext:
+    cmd: "python -m src.finetune  pipeline=pipeline3  model=convnext\n"
+    deps:
+    - path: data/split/val
+      hash: md5
+      md5: aa1ee861ad552d1a00bc7136164398d8.dir
+      size: 33725765
+      nfiles: 634
+    - path: pipeline3/convnext/model.pth
+      hash: md5
+      md5: fdacf24afd286402c1cad273196120b7
+      size: 350394259
+    - path: pipeline3/data/augmented/train
+      hash: md5
+      md5: cae551e9b2a632ef48ad17d9fe3e054b.dir
+      size: 1408266712
+      nfiles: 8859
+    - path: src/common.py
+      hash: md5
+      md5: eebdc02be491d1a283c895659a244fdc
+      size: 3543
+    - path: src/finetune.py
+      hash: md5
+      md5: 81dde0936643975ed65540f8c8d56fa7
+      size: 2975
+    params:
+      conf/config.yaml:
+        base:
+          image_res: 224
+          seed: 42
+        data:
+          valset_path: data/split/val
+          testset_path: data/split/test
+        defaults:
+        - pipeline: baseline
+        - model: effnet_s
+        - _self_
+        evaluate:
+          batch_size: 16
+        train:
+          alpha: 5.0
+      conf/model/convnext.yaml:
+        fullname: convnext_base
+        layer: 2
+        name: convnext
+        weights: ConvNeXt_Base_Weights.DEFAULT
+      conf/pipeline/pipeline3.yaml:
+        augment:
+          src_dir: data/split
+          dst_dir: pipeline3/data/augmented
+          force: false
+        finetuning:
+          lr: 0.0001
+          epochs: 5
+          batch_size: 16
+        out_dir: pipeline3/
+        train:
+          lr: 0.001
+          epochs: 4
+          batch_size: 16
+        trainset_path: pipeline3/data/augmented/train
+        tsft: true
+    outs:
+    - path: pipeline3/convnext/finetuned/loss.json
+      hash: md5
+      md5: 146ab7034afe8dbdf626f396947e6144
+      size: 116
+    - path: pipeline3/convnext/finetuned/model.pth
+      hash: md5
+      md5: c21ad2d4ba82eef033d75e9071ce79db
+      size: 350394259
+  evaluate@effnet_m:
+    cmd: "python -m src.evaluate  pipeline=pipeline3  model=effnet_m\n"
+    deps:
+    - path: data/split/test
+      hash: md5
+      md5: d7675a3f7fb90cbdfff2fa7fcaff688f.dir
+      size: 34292589
+      nfiles: 636
+    - path: pipeline3/effnet_m/finetuned/model.pth
+      hash: md5
+      md5: 79db5cdbc03bad471f2db637a3c0efe8
+      size: 212984427
+    - path: src/common.py
+      hash: md5
+      md5: eebdc02be491d1a283c895659a244fdc
+      size: 3543
+    - path: src/evaluate.py
+      hash: md5
+      md5: d5744aafc8efedc89a8d28a5f298a4f7
+      size: 3495
+    params:
+      conf/config.yaml:
+        base:
+          image_res: 224
+          seed: 42
+        data:
+          valset_path: data/split/val
+          testset_path: data/split/test
+        defaults:
+        - pipeline: baseline
+        - model: effnet_s
+        - _self_
+        evaluate:
+          batch_size: 16
+        train:
+          alpha: 5.0
+      conf/model/effnet_m.yaml:
+        fullname: efficientnet_v2_m
+        layer: 1
+        name: effnet_m
+        weights: EfficientNet_V2_M_Weights.DEFAULT
+      conf/pipeline/pipeline3.yaml:
+        augment:
+          src_dir: data/split
+          dst_dir: pipeline3/data/augmented
+          force: false
+        finetuning:
+          lr: 0.0001
+          epochs: 5
+          batch_size: 16
+        out_dir: pipeline3/
+        train:
+          lr: 0.001
+          epochs: 4
+          batch_size: 16
+        trainset_path: pipeline3/data/augmented/train
+        tsft: true
+    outs:
+    - path: pipeline3/effnet_m/finetuned/cm_data.csv
+      hash: md5
+      md5: 2bf6828be04da5bcafdc7027dc6d97c2
+      size: 15121
+    - path: pipeline3/effnet_m/finetuned/metrics.json
+      hash: md5
+      md5: 48fd7b82d0843189f0894de943838efc
+      size: 100
+  evaluate@convnext:
+    cmd: "python -m src.evaluate  pipeline=pipeline3  model=convnext\n"
+    deps:
+    - path: data/split/test
+      hash: md5
+      md5: d7675a3f7fb90cbdfff2fa7fcaff688f.dir
+      size: 34292589
+      nfiles: 636
+    - path: pipeline3/convnext/finetuned/model.pth
+      hash: md5
+      md5: c21ad2d4ba82eef033d75e9071ce79db
+      size: 350394259
+    - path: src/common.py
+      hash: md5
+      md5: eebdc02be491d1a283c895659a244fdc
+      size: 3543
+    - path: src/evaluate.py
+      hash: md5
+      md5: d5744aafc8efedc89a8d28a5f298a4f7
+      size: 3495
+    params:
+      conf/config.yaml:
+        base:
+          image_res: 224
+          seed: 42
+        data:
+          valset_path: data/split/val
+          testset_path: data/split/test
+        defaults:
+        - pipeline: baseline
+        - model: effnet_s
+        - _self_
+        evaluate:
+          batch_size: 16
+        train:
+          alpha: 5.0
+      conf/model/convnext.yaml:
+        fullname: convnext_base
+        layer: 2
+        name: convnext
+        weights: ConvNeXt_Base_Weights.DEFAULT
+      conf/pipeline/pipeline3.yaml:
+        augment:
+          src_dir: data/split
+          dst_dir: pipeline3/data/augmented
+          force: false
+        finetuning:
+          lr: 0.0001
+          epochs: 5
+          batch_size: 16
+        out_dir: pipeline3/
+        train:
+          lr: 0.001
+          epochs: 4
+          batch_size: 16
+        trainset_path: pipeline3/data/augmented/train
+        tsft: true
+    outs:
+    - path: pipeline3/convnext/finetuned/cm_data.csv
+      hash: md5
+      md5: e020a594a3eeb4530bea15a98d6fe1bd
+      size: 15074
+    - path: pipeline3/convnext/finetuned/metrics.json
+      hash: md5
+      md5: 2e08d9ab8465b0ba9f165a457591c8d4
+      size: 100

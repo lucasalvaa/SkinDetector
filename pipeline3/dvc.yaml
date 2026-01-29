@@ -81,7 +81,7 @@ stages:
             template: confusion
             x: actual
             y: predicted
-            title: "Pipeline 2 - Two-Stage Fine-Tuning CM - ${item}"
+            title: "Pipeline 3 - Two-Stage Fine-Tuning CM - ${item}"
             cache: false
 
 plots:
