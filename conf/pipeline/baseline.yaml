@@ -1,4 +1,4 @@
-out_dir: baseline/
+out_dir: experiments/baseline/
 
 trainset_path: data/split/train
 

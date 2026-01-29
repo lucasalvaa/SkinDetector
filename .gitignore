@@ -209,3 +209,8 @@ __marimo__/
 data
 */data/augmented
 */params.yaml
+
+# Hydra outputs
+outputs/
+
+experiments/*/model.pth

@@ -1,11 +1,11 @@
-out_dir: pipeline3/
-
-trainset_path: pipeline3/data/augmented/train
+out_dir: experiments/pipeline3/
 
 augment:
   src_dir: data/split
-  dst_dir: pipeline3/data/augmented
+  dst_dir: experiments/pipeline3/data/augmented
   force: False
+
+trainset_path: experiments/pipeline3/data/augmented/train
 
 train:
   lr: 0.001

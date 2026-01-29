@@ -1,0 +1,94 @@
+stages:
+  stage-1:
+    foreach: [ effnet_s, effnet_m, convnext ]
+    do:
+      wdir: ../..
+      cmd: >
+        python -m src.train 
+        pipeline=pipeline2 
+        model=${item}
+      deps:
+        - data/split/train
+        - data/split/val
+        - src/train.py
+        - src/common.py
+      params:
+        - conf/config.yaml:
+        - conf/pipeline/pipeline2.yaml:
+        - conf/model/${item}.yaml:
+      outs:
+        - experiments/pipeline2/${item}/model.pth
+
+  stage-2: # fine-tuning
+    foreach: [ effnet_s, effnet_m, convnext ]
+    do:
+      wdir: ../..
+      cmd: >
+        python -m src.finetune 
+        pipeline=pipeline2 
+        model=${item}
+      deps:
+        - data/split/train
+        - data/split/val
+        - src/finetune.py
+        - src/common.py
+        - experiments/pipeline2/${item}/model.pth
+      params:
+        - conf/config.yaml:
+        - conf/pipeline/pipeline2.yaml:
+        - conf/model/${item}.yaml:
+      outs:
+        - experiments/pipeline2/${item}/finetuned/model.pth
+        - experiments/pipeline2/${item}/finetuned/loss.json
+
+
+  evaluate:
+    foreach: [ effnet_s, effnet_m, convnext ]
+    do:
+      wdir: ../..
+      cmd: >
+        python -m src.evaluate 
+        pipeline=pipeline2 
+        model=${item}
+      deps:
+        - data/split/test
+        - src/evaluate.py
+        - src/common.py
+        - experiments/pipeline2/${item}/finetuned/model.pth
+      params:
+        - conf/config.yaml:
+        - conf/pipeline/pipeline2.yaml:
+        - conf/model/${item}.yaml:
+      metrics:
+        - experiments/pipeline2/${item}/finetuned/metrics.json:
+            cache: false
+      plots:
+        - experiments/pipeline2/${item}/finetuned/cm_data.csv:
+            template: confusion
+            x: actual
+            y: predicted
+            title: "Pipeline 2 - Two-Stage Fine-Tuning CM - ${item}"
+            cache: false
+
+
+plots:
+    - effnet_s_curves:
+        template: linear
+        x: epoch
+        y:
+          effnet_s/finetuned/loss.json: [ train_loss, val_loss ]
+        title: "Pipeline 2 - FT EfficientNet S: Train vs Val"
+
+    - effnet_m_curves:
+        template: linear
+        x: epoch
+        y:
+          effnet_m/finetuned/loss.json: [ train_loss, val_loss ]
+        title: "Pipeline 2 - FT EfficientNet M: Train vs Val"
+
+    - convnext_curves:
+        template: linear
+        x: epoch
+        y:
+          convnext/finetuned/loss.json: [ train_loss, val_loss ]
+        title: "Pipeline 2 - FT ConvNeXt: Train vs Val"
