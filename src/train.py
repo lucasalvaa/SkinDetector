@@ -125,6 +125,7 @@ def main(cfg: DictConfig) -> None:
                 f"Stopping at epoch {epoch + 1}. "
                 f"Best model was at epoch {early_stopper.best_epoch}"
             )
+            history.pop()
             break
 
     print(f"Model {cfg.model.name} trained successfully!")
