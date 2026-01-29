@@ -1,4 +1,4 @@
 name: convnext
-fullname: convnext_tiny
+fullname: convnext_base
 layer: 2
-weights: ConvNeXt_Tiny_Weights.DEFAULT
+weights: ConvNeXt_Base_Weights.DEFAULT
