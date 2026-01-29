@@ -20,6 +20,8 @@ ignore = [
     "D100", # Spesso i docstring nei file __init__.py sono ridondanti
     "ANN101", # Non serve annotare 'self'
     "ANN102", # Non serve annotare 'cls'
+    "N812",
+    "B008"
 ]
 
 [lint.mccabe]
