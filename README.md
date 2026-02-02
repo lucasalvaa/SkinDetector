@@ -3,24 +3,23 @@ SkinDetector is a deep-learning AI module capable of diagnosing canine dermatolo
 
 SkinDetector is part of the [SafePet project](https://github.com/Progetto-SafePet).
 
-![SafePet Logo](./.github/images/safepet.png)
+<img alt="SafePet Logo" src="./.github/images/safepet.png" width="300px" />
 
-
-## Authors
+## AUTHORS
 Simone Cimmino [@SimoCimmi](https://github.com/SimoCimmi) <br>
 Luca Salvatore [@lucasalvaa](https://github.com/lucasalvaa) <br>
 Morgan Vitiello [@MorganVitiello](https://github.com/MorganVitiello)
 
-## Credits
+## CREDITS
 The project was developed at the University of Salerno, Department of Computer Science, in the academic year 2025-26 for
 the exam of Fundamentals of Artificial Intelligence helb by Professor Fabio Palomba [@fpalomba](https://github.com/fpalomba), whom we thank for his support.
 
-## Dataset
+## DATASET
 The dataset on which the models were trained is [Dog's skin diseases (Image Dataset)](https://www.kaggle.com/datasets/youssefmohmmed/dogs-skin-diseases-image-dataset).
 
 ![class distribution](./.github/images/classes.png)
 
-## Pipelines
+## TRAINING PIPELINES
 To select the final model, four slightly different training pipelines were undertaken. Each pipeline is defined in the experiments/[pipeline] directory in the relative dvc.yaml file.
 
 ### Baseline
@@ -56,7 +55,8 @@ We combine the data augmentation strategy of Pipeline 1 with the two-stage fine-
 
 ![pipeline3](./.github/images/pipeline3.png)
 
-## Results
+## RESULTS
 
-The table shows the results of the experiments. The final model chosen is EfficientNetV2_S trained in pipeline 3.
+The table shows the results of the experiments. The final model chosen is EfficientNetV2_S trained in Pipeline 3.
+
 ![results](.github/images/results.png)
