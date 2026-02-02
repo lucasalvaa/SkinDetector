@@ -39,8 +39,8 @@ def get_dataloader(
         dataset,
         batch_size=batch_size,
         shuffle=("train" in str(data_path)),
-        num_workers=4,  # Accelera il caricamento dati
-        pin_memory=True,  # Accelera il trasferimento dati alla GPU
+        num_workers=4,  # Speed up data loading
+        pin_memory=True,  # Speed up data transfer to the GPU
     )
 
 

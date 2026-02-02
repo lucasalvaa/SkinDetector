@@ -45,7 +45,7 @@ def evaluate(
 
     size = len(loader.dataset)
 
-    # average='macro' è standard per il multiclasse (media non pesata delle classi)
+    # average='macro' is standard for multiclass (unweighted average of classes)
     precision = precision_score(all_labels, all_preds, average="macro", zero_division=0)
 
     return top1 / size, top3 / size, precision, all_labels, all_preds

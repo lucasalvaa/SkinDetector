@@ -10,11 +10,11 @@ class EarlyStopping:
     """
 
     def __init__(self, alpha: float = 5.0, path: str = "checkpoint.pth") -> None:
-        """Inizializza il monitoraggio.
+        """Initializes monitoring.
 
         Args:
-            alpha: Soglia percentuale di Generalization Loss (es. 5.0).
-            path: Percorso dove salvare il miglior modello (E_opt).
+            alpha: Generalization Loss percentage threshold (e.g., 5.0).
+            path: Path to save the best model (E_opt).
 
         """
         self.alpha: float = alpha
@@ -24,18 +24,18 @@ class EarlyStopping:
         self.stop: bool = False
 
     def __call__(self, v_loss: float, epoch: int, model: nn.Module) -> None:
-        """Verifica la condizione di arresto.
+        """Check the shutdown condition.
 
         Args:
-            v_loss: Loss di validazione dell'epoca corrente.
-            epoch: Indice dell'epoca attuale.
-            model: Il modello da salvare in caso di miglioramento.
+            v_loss: Validation loss of the current epoch.
+            epoch: Index of the current epoch.
+            model: The model to save in case of improvement.
 
         """
         if v_loss < self.min_v_loss:
             self.min_v_loss = v_loss
             self.best_epoch = epoch
-            # Salviamo il modello "ottimale" (E_opt) citato nel paper
+            # Save the "optimal" model (E_opt) mentioned in the paper
             torch.save(model.state_dict(), self.path)
 
         # GL(t) = 100 * (E_va(t) / E_opt(t) - 1)

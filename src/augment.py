@@ -48,7 +48,7 @@ def apply_vertical_flip(image: Image.Image) -> Image.Image:
 
 
 def apply_random_strategy(img: Image.Image) -> Image.Image:
-    """Applica esattamente 2 trasformazioni random a un oggetto immagine PIL."""
+    """Perform exactly 2 random transforms on a PIL image object."""
     transformations = [
         apply_gaussian_noise,
         apply_saturation,
@@ -62,7 +62,7 @@ def apply_random_strategy(img: Image.Image) -> Image.Image:
 
 
 def augment_dataset(src_dir: Path, dst_dir: Path) -> None:
-    """Processa il dataset: triplica il train."""
+    """Process dataset: triple the training set."""
     for class_dir in src_dir.iterdir():
         if not class_dir.is_dir():
             continue
