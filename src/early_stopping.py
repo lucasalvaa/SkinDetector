@@ -10,7 +10,7 @@ class EarlyStopping:
     """
 
     def __init__(self, alpha: float = 5.0, path: str = "checkpoint.pth") -> None:
-        """Initializes monitoring.
+        """Initialize monitoring.
 
         Args:
             alpha: Generalization Loss percentage threshold (e.g., 5.0).
@@ -24,7 +24,7 @@ class EarlyStopping:
         self.stop: bool = False
 
     def __call__(self, v_loss: float, epoch: int, model: nn.Module) -> None:
-        """Check the shutdown condition.
+        """Check the stopping condition.
 
         Args:
             v_loss: Validation loss of the current epoch.
