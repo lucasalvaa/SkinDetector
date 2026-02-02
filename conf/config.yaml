@@ -1,6 +1,6 @@
 defaults:
-  - pipeline: baseline  # Carica conf/pipeline/baseline.yaml
-  - model: effnet_s     # Carica conf/model/effnet_s.yaml
+  - pipeline: baseline  # Load conf/pipeline/baseline.yaml
+  - model: effnet_s     # Load conf/model/effnet_s.yaml
   - _self_
 
 base:
