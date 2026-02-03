@@ -137,11 +137,10 @@ class SkinDetectorEDA:
 
 if __name__ == "__main__":
     current_file = Path(__file__).resolve()
-    src_dir = current_file.parent.parent
-    project_root = src_dir.parent
+    project_root = current_file.parent.parent
 
-    raw_data_path = project_root / "data" / "raw"
-    reports_path = src_dir.parent / "reports"
+    raw_data_path = project_root / "data" / "dedup"
+    reports_path = project_root.parent / "reports"
 
     if not raw_data_path.exists():
         print(f"[-] Error: Could not find data at {raw_data_path}")
