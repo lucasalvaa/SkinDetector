@@ -31,5 +31,5 @@ USER appuser
 COPY src/api.py .
 COPY --chown=appuser:appuser pipeline3/effnet_s/finetuned/model.pth ./weights/model.pth
 
-EXPOSE 8080
+EXPOSE 8000
 CMD ["python", "api.py"]
